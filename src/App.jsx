@@ -183,7 +183,7 @@ const App = () => {
     // Render Shop Phase
     if (phase === 'shop') {
         return (
-            <div className="max-w-md mx-auto min-h-screen bg-slate-950 p-6 flex flex-col">
+            <div className="max-w-md mx-auto h-[100dvh] overflow-hidden bg-slate-950 p-6 flex flex-col pt-12">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold flex items-center gap-2 text-slate-100">
                         <Store className="text-emerald-400" /> חנות ציוד
