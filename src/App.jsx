@@ -194,7 +194,18 @@ const App = () => {
                     </div>
                 </div>
 
-                <h3 className="text-lg font-bold mb-4 text-slate-400 border-b border-slate-800 pb-2">ציוד אקראי לרמתך ({p.level}):</h3>
+                <div className="mb-6">
+                    <h3 className="text-lg font-bold mb-3 text-slate-400 border-b border-slate-800 pb-2">הציוד הנוכחי שלך:</h3>
+                    <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2 snap-x" dir="rtl">
+                        <div className="w-44 flex-shrink-0 snap-center"><ItemCard item={p.meleeWeapon} isEquipped={true} /></div>
+                        <div className="w-44 flex-shrink-0 snap-center"><ItemCard item={p.magicWeapon} isEquipped={true} /></div>
+                        <div className="w-44 flex-shrink-0 snap-center"><ItemCard item={p.armor} isEquipped={true} /></div>
+                        {p.ring1 && <div className="w-44 flex-shrink-0 snap-center"><ItemCard item={p.ring1} isEquipped={true} /></div>}
+                        {p.ring2 && <div className="w-44 flex-shrink-0 snap-center"><ItemCard item={p.ring2} isEquipped={true} /></div>}
+                    </div>
+                </div>
+
+                <h3 className="text-lg font-bold mb-4 text-slate-400 border-b border-slate-800 pb-2">ציוד למכירה לרמתך ({p.level}):</h3>
                 
                 <div className="grid grid-cols-2 gap-4 overflow-y-auto hide-scrollbar pb-24" style={{maxHeight: 'calc(100vh - 250px)'}}>
                     {Object.entries(shopInventory).map(([type, item]) => item && (
