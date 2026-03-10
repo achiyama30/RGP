@@ -230,22 +230,26 @@ const App = () => {
 
                 <h3 className="text-lg font-bold mb-4 text-slate-400 border-b border-slate-800 pb-2">ציוד למכירה לרמתך ({p.level}):</h3>
                 
-                <div className="grid grid-cols-2 gap-4 overflow-y-auto hide-scrollbar pb-32" style={{maxHeight: 'calc(100vh - 250px)'}}>
-                    {Object.entries(shopInventory).map(([type, item]) => item && (
-                        <ItemCard 
-                            key={type} 
-                            item={item} 
-                            onAction={(t, i) => { audioSystem.sfxGold(); dispatch({ type: 'BUY_ITEM', payload: { type: t, item: i } }); }}
-                            actionText={<>{item.cost} <Coins size={14}/></>}
-                            disabled={p.gold < item.cost}
-                            actionButtonClass={p.gold >= item.cost ? 'bg-yellow-600 hover:bg-yellow-500 text-white' : 'bg-slate-800 text-slate-500 border border-slate-700'}
-                        />
-                    ))}
-                    {!Object.values(shopInventory).some(i => i) && (
-                        <div className="col-span-2 text-center text-slate-500 py-8 bg-slate-900/50 rounded-xl border border-dashed border-slate-800">
-                            קנית הכל! ציוד חדש יגיע כשתעלה רמה.
+                <div className="flex-1 min-h-0 relative">
+                    <div className="absolute inset-0 overflow-y-auto hide-scrollbar pb-32">
+                        <div className="grid grid-cols-2 gap-4">
+                            {Object.entries(shopInventory).map(([type, item]) => item && (
+                                <ItemCard 
+                                    key={type} 
+                                    item={item} 
+                                    onAction={(t, i) => { audioSystem.sfxGold(); dispatch({ type: 'BUY_ITEM', payload: { type: t, item: i } }); }}
+                                    actionText={<>{item.cost} <Coins size={14}/></>}
+                                    disabled={p.gold < item.cost}
+                                    actionButtonClass={p.gold >= item.cost ? 'bg-yellow-600 hover:bg-yellow-500 text-white' : 'bg-slate-800 text-slate-500 border border-slate-700'}
+                                />
+                            ))}
+                            {!Object.values(shopInventory).some(i => i) && (
+                                <div className="col-span-2 text-center text-slate-500 py-8 bg-slate-900/50 rounded-xl border border-dashed border-slate-800">
+                                    קנית הכל! ציוד חדש יגיע כשתעלה רמה.
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
 
                 <div className="mt-auto pt-4 absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent">
