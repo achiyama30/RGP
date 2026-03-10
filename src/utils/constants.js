@@ -14,3 +14,37 @@ export const itemNames = {
     armor: ['שריון עור', 'שריון שרשראות', 'שריון לוחות', 'גלימת מגן', 'שריון קשקשים'],
     ring: ['טבעת חיים', 'קמע זריזות', 'טבעת המלך', 'קמע עין-נץ', 'טבעת אודם']
 };
+
+export const elements = {
+    FIRE: 'אש',
+    WATER: 'מים',
+    NATURE: 'טבע',
+    NEUTRAL: 'רגיל'
+};
+
+export const regions = [
+    {
+        id: 'forest',
+        name: 'יער לוחש',
+        element: elements.NATURE,
+        minLevel: 1,
+        boss: { name: 'אלון עתיק מושחת', hpMult: 3, strMult: 1.5, magMult: 1.5, element: elements.NATURE },
+        monsters: ['זאב בלהות', 'גובלין סורר', 'עכביש ענק', 'שדון יער', 'טרול מעמקים']
+    },
+    {
+        id: 'volcano',
+        name: 'מערות הלהבה',
+        element: elements.FIRE,
+        minLevel: 5,
+        boss: { name: 'שדון האש הגדול', hpMult: 4, strMult: 2, magMult: 2, element: elements.FIRE },
+        monsters: ['כלב אש', 'גולם לבה', 'לוחם אפר', 'סלמנדרה', 'רוח אש מתפרצת']
+    },
+    {
+        id: 'tundra',
+        name: 'פסגת הקרח',
+        element: elements.WATER,
+        minLevel: 12,
+        boss: { name: 'לורד הקרחון', hpMult: 5, strMult: 2.5, magMult: 2.5, element: elements.WATER },
+        monsters: ['זאב שלג', 'לוחם כפור', 'גולם קרח', 'רוח סערה', 'ממותה גוויה']
+    }
+];

@@ -1,20 +1,22 @@
-import { rarities } from '../utils/constants';
+import { rarities, regions } from '../utils/constants';
 import { getShopInventory, generateItem, generateEnemy } from '../utils/generators';
-import { addLog, createFloatingText } from '../utils/helpers';
+import { addLog, createFloatingText, getElementalMultiplier } from '../utils/helpers';
 
 export const initialState = {
     phase: 'home',
+    currentRegionIndex: 0,
+    highestRegionUnlocked: 0,
     player: {
         level: 1, xp: 0, gold: 100, potions: 3,
         hp: 150, baseMaxHp: 150,
         mp: 80, baseMaxMp: 80,
         str: 8, def: 3, mag: 8,
-        meleeWeapon: { name: 'חרב ברזל', level: 1, type: 'melee', str: 6, rarity: rarities[1], cost: 20 },
-        magicWeapon: { name: 'שרביט עץ', level: 1, type: 'magic', mag: 2, mpBonus: 10, rarity: rarities[1], cost: 20 },
+        meleeWeapon: { name: 'חרב ברזל', level: 1, type: 'melee', str: 6, element: 'רגיל', rarity: rarities[1], cost: 20 },
+        magicWeapon: { name: 'שרביט עץ', level: 1, type: 'magic', mag: 2, mpBonus: 10, element: 'רגיל', rarity: rarities[1], cost: 20 },
         armor: { name: 'שריון עור מחוזק', level: 1, type: 'armor', def: 4, rarity: rarities[1], cost: 20 },
         ring1: null,
         ring2: null,
-        isDefending: false, specialCooldown: 0, stunTurns: 0, statuses: []
+        isDefending: false, specialCooldown: 0, slamCooldown: 0, burstCooldown: 0, stunTurns: 0, statuses: []
     },
     enemy: null,
     log: [],
@@ -55,6 +57,15 @@ export const gameReducer = (state, action) => {
         return { player: np, leveledUp };
     };
 
+    const applyDeathPenalty = (np) => {
+        const prevRegionIndex = Math.max(0, state.currentRegionIndex - 1);
+        return {
+            player: { ...np, gold: 0, hp: np.baseMaxHp, mp: np.baseMaxMp, statuses: [], isDefending: false },
+            currentRegionIndex: prevRegionIndex,
+            highestRegionUnlocked: Math.max(0, state.highestRegionUnlocked - 1),
+        };
+    };
+
     switch (action.type) {
         case 'RESET_GAME': {
             return { ...initialState };
@@ -64,17 +75,38 @@ export const gameReducer = (state, action) => {
             return { ...state, floatingTexts: state.floatingTexts.filter(t => t.id !== action.payload.id) };
         }
 
+        case 'SELECT_REGION': {
+            const idx = action.payload.index;
+            if (idx > state.highestRegionUnlocked) return state;
+            return { ...state, currentRegionIndex: idx };
+        }
+
         case 'EXPLORE': {
+            const region = regions[state.currentRegionIndex];
             const roll = Math.random();
             if (roll < 0.60) {
-                const newEnemy = generateEnemy(p.level);
+                const newEnemy = generateEnemy(p.level, region);
                 return { 
                     ...state, phase: 'battle', turn: 'player', enemy: newEnemy,
                     log: [addLog(newEnemy.isBoss ? `🚨 נקלעת לקרב בוס מול ${newEnemy.name} (רמה ${newEnemy.level})!` : `⚔️ הותקפת על ידי ${newEnemy.name} (רמה ${newEnemy.level})!`, newEnemy.isBoss ? 'danger' : 'warning')],
-                    player: { ...p, isDefending: false, stunTurns: 0, specialCooldown: 0, statuses: [] } 
+                    player: { ...p, isDefending: false, stunTurns: 0, slamCooldown: Math.max(0, p.slamCooldown - 1), burstCooldown: Math.max(0, p.burstCooldown - 1), statuses: [] } 
                 };
             } 
-            else if (roll < 0.85) {
+            // --- Merchant event ---
+            else if (roll < 0.67) {
+                return {
+                    ...state, phase: 'event',
+                    eventData: { type: 'merchant', title: 'סוחר נודד!', desc: 'פגשת סוחר מסתורי בדרך. הוא מציע לך תיבה אטומה תמורת 50 זהב. מה בפנים? אין לדעת...', icon: 'gem' }
+                };
+            }
+            // --- Injured traveler event ---
+            else if (roll < 0.72 && p.potions > 0) {
+                return {
+                    ...state, phase: 'event',
+                    eventData: { type: 'traveler', title: 'נווד פצוע!', desc: 'מצאת נווד פצוע מוטל בצד הדרך. הוא מבקש שיקוי ריפוי. תעזור לו?', icon: 'alert' }
+                };
+            }
+            else if (roll < 0.87) {
                 if (Math.random() < 0.3) { 
                     const types = ['melee', 'magic', 'armor', 'ring'];
                     const loot = generateItem(p.level + 1, types[Math.floor(Math.random() * types.length)]);
@@ -92,11 +124,15 @@ export const gameReducer = (state, action) => {
                 const damage = Math.max(1, Math.floor(playerTotalMaxHp * (0.10 + Math.random() * 0.15)));
                 let np = { ...p, hp: Math.max(0, p.hp - damage) };
                 if (np.hp <= 0) {
-                    np.hp = playerTotalMaxHp; np.mp = playerTotalMaxMp; np.gold = Math.floor(np.gold / 2);
+                    const death = applyDeathPenalty(np);
+                    const regionName = regions[death.currentRegionIndex]?.name || 'יער';
                     return {
                         ...state, phase: 'event',
-                        eventData: { type: 'death', title: 'מלכודת קטלנית!', desc: `המלכודת הרגה אותך... חזרת לעיר ואיבדת חצי מהזהב.`, icon: 'skull' },
-                        player: np, shopInventory: getShopInventory(np.level)
+                        eventData: { type: 'death', title: 'מלכודת קטלנית!', desc: `המלכודת הרגה אותך... איבדת את כל הזהב שלך ועברת לאחור ל${regionName}.`, icon: 'skull' },
+                        player: death.player,
+                        currentRegionIndex: death.currentRegionIndex,
+                        highestRegionUnlocked: death.highestRegionUnlocked,
+                        shopInventory: getShopInventory(death.player.level)
                     };
                 } else {
                     return {
@@ -106,6 +142,25 @@ export const gameReducer = (state, action) => {
                     };
                 }
             }
+        }
+
+        case 'EVENT_MERCHANT_BUY': {
+            if (p.gold < 50) return state;
+            const lootTypes = ['melee', 'magic', 'armor', 'ring'];
+            const surprise = generateItem(p.level + 1, lootTypes[Math.floor(Math.random() * lootTypes.length)]);
+            return { ...state, phase: 'loot', lootData: surprise, player: { ...p, gold: p.gold - 50 }, eventData: null };
+        }
+
+        case 'EVENT_HELP_TRAVELER': {
+            if (p.potions <= 0) return state;
+            const xpReward = p.level * 15;
+            let np = { ...p, potions: p.potions - 1, xp: p.xp + xpReward };
+            const { player: finalPlayer, leveledUp } = checkLevelUp(np);
+            return {
+                ...state, phase: 'event',
+                eventData: { type: 'treasure', title: 'לב טוב מתוגמל!', desc: `הנווד קיבל את השיקוי ובתמורה לחש עליך ברכה. קיבלת ${xpReward} XP${leveledUp ? ' ועלית רמה!' : '!'}`, gold: 0, icon: 'gem' },
+                player: finalPlayer
+            };
         }
         
         case 'CLOSE_EVENT': return { ...state, phase: 'home', eventData: null };
@@ -241,8 +296,9 @@ export const gameReducer = (state, action) => {
         case 'PLAYER_ACTION': {
             if (state.turn !== 'player') return state;
             const { actionType } = action.payload;
+            const ne = state.enemy;
             let np = { ...p, isDefending: false };
-            let ne = { ...state.enemy };
+            let newNe = { ...ne };
             let newLogs = [];
             let newFloatingTexts = [...state.floatingTexts];
             let isCrit = false;
@@ -259,17 +315,20 @@ export const gameReducer = (state, action) => {
                 np.statuses = np.statuses.filter(s => s.turns > 0);
             }
 
-            if (np.specialCooldown > 0) np.specialCooldown--;
+            if (np.slamCooldown > 0) np.slamCooldown--;
+            if (np.burstCooldown > 0) np.burstCooldown--;
 
             if (actionType === 'attack') {
                 if (Math.random() < 0.1) {
                     newLogs.unshift(addLog(`💨 פספוס! המתקפה שלך החטיאה.`, 'warning'));
                 } else {
                     isCrit = Math.random() < playerCritChance;
-                    let dmg = Math.max(1, Math.floor(playerTotalStr * (0.8 + Math.random() * 0.4)) - ne.def);
+                    const elemMult = getElementalMultiplier(p.meleeWeapon?.element, newNe.element);
+                    let dmg = Math.max(1, Math.floor(playerTotalStr * (0.8 + Math.random() * 0.4) * elemMult) - newNe.def);
                     if (isCrit) dmg *= 2;
-                    ne.hp -= dmg;
-                    newLogs.unshift(addLog(isCrit ? `💥 מכה קריטית! ${dmg} נזק אדיר!` : `🗡️ תקפת וגרמת ${dmg} נזק!`, isCrit ? 'warning' : 'attack'));
+                    newNe.hp -= dmg;
+                    const elemText = elemMult > 1 ? ' 🔥 יעיל במיוחד!' : (elemMult < 1 ? ' 💧 לא יעיל...' : '');
+                    newLogs.unshift(addLog(isCrit ? `💥 מכה קריטית! ${dmg} נזק אדיר!${elemText}` : `🗡️ תקפת וגרמת ${dmg} נזק!${elemText}`, isCrit ? 'warning' : 'attack'));
                     newFloatingTexts.push(createFloatingText(`-${dmg}`, isCrit ? 'crit' : 'damage', 'enemy'));
                 }
             } else if (actionType === 'magic') {
@@ -281,31 +340,51 @@ export const gameReducer = (state, action) => {
                         newLogs.unshift(addLog(`💨 הקסם שלך החטיא!`, 'warning'));
                     } else {
                         isCrit = Math.random() < (playerCritChance + 0.05);
-                        let dmg = Math.max(1, Math.floor(playerTotalMag * 1.8 * (0.8 + Math.random() * 0.4)) - Math.floor(ne.def * 0.4));
+                        const elemMult = getElementalMultiplier(p.magicWeapon?.element, newNe.element);
+                        let dmg = Math.max(1, Math.floor(playerTotalMag * 1.8 * (0.8 + Math.random() * 0.4) * elemMult) - Math.floor(newNe.def * 0.4));
                         if (isCrit) dmg *= 2;
-                        ne.hp -= dmg;
-                        newLogs.unshift(addLog(isCrit ? `🔥 קסם קריטי!! ${dmg} נזק קסום!` : `✨ כישוף! גרמת ${dmg} נזק קסם.`, isCrit ? 'warning' : 'magic'));
+                        newNe.hp -= dmg;
+                        const elemText = elemMult > 1 ? ' 🔥 יעיל במיוחד!' : (elemMult < 1 ? ' 💧 לא יעיל...' : '');
+                        newLogs.unshift(addLog(isCrit ? `🔥 קסם קריטי!! ${dmg} נזק קסום!${elemText}` : `✨ כישוף! גרמת ${dmg} נזק קסם.${elemText}`, isCrit ? 'warning' : 'magic'));
                         newFloatingTexts.push(createFloatingText(`-${dmg}`, isCrit ? 'crit' : 'damage', 'enemy'));
                     }
                 } else {
                     newLogs.unshift(addLog('❌ אין מספיק MP לקסם!', 'danger'));
                     return { ...state, log: [...newLogs, ...state.log].slice(0, 8) };
                 }
-            } else if (actionType === 'heavy') {
-                if (np.specialCooldown === 0) {
-                    np.specialCooldown = 3;
-                    if (Math.random() < 0.25) {
-                        newLogs.unshift(addLog(`💨 מכת המחץ שלך החטיאה לחלוטין.`, 'warning'));
-                    } else {
-                        isCrit = Math.random() < playerCritChance;
-                        let dmg = Math.max(1, Math.floor(playerTotalStr * 2.5) - ne.def);
-                        if (isCrit) dmg = Math.floor(dmg * 1.5);
-                        ne.hp -= dmg;
-                        ne.stunTurns = 1;
-                        newLogs.unshift(addLog(`💥 מכת מחץ! גרמת ${dmg} נזק והממת את האויב!`, 'attack'));
-                        newFloatingTexts.push(createFloatingText(`-${dmg}`, isCrit ? 'crit' : 'damage', 'enemy'));
-                    }
+            } else if (actionType === 'slam') {
+                // Heavy physical skill with cooldown 4
+                if (np.slamCooldown > 0) return state;
+                np.slamCooldown = 4;
+                if (Math.random() < 0.2) {
+                    newLogs.unshift(addLog(`💨 מכת המחץ שלך החטיאה לחלוטין.`, 'warning'));
+                } else {
+                    isCrit = Math.random() < playerCritChance;
+                    let dmg = Math.max(1, Math.floor(playerTotalStr * 2.5) - newNe.def);
+                    if (isCrit) dmg = Math.floor(dmg * 1.5);
+                    newNe.hp -= dmg;
+                    newNe.stunTurns = 1;
+                    newLogs.unshift(addLog(`💥 מחץ! גרמת ${dmg} נזק והממת את האויב!`, 'attack'));
+                    newFloatingTexts.push(createFloatingText(`-${dmg}`, isCrit ? 'crit' : 'damage', 'enemy'));
                 }
+            } else if (actionType === 'burst') {
+                // Magic burst skill with cooldown 3
+                const cost = 30;
+                if (np.burstCooldown > 0 || np.mp < cost) {
+                    if (np.mp < cost) newLogs.unshift(addLog('❌ אין מספיק MP לפרץ!', 'danger'));
+                    return { ...state, log: [...newLogs, ...state.log].slice(0, 8) };
+                }
+                np.burstCooldown = 3;
+                np.mp -= cost;
+                newFloatingTexts.push(createFloatingText(`-${cost}`, 'mana', 'player'));
+                isCrit = Math.random() < (playerCritChance + 0.1);
+                const elemMult = getElementalMultiplier(p.magicWeapon?.element, newNe.element);
+                let dmg = Math.max(1, Math.floor(playerTotalMag * 3.5 * elemMult) - Math.floor(newNe.def * 0.3));
+                if (isCrit) dmg = Math.floor(dmg * 1.8);
+                newNe.hp -= dmg;
+                const elemText = elemMult > 1 ? ' 🔥 יעיל במיוחד!' : (elemMult < 1 ? ' 💧 לא יעיל...' : '');
+                newLogs.unshift(addLog(`💫 פרץ מאנה!!${isCrit ? ' קריטי!' : ''} ${dmg} נזק קסם!${elemText}`, 'magic'));
+                newFloatingTexts.push(createFloatingText(`-${dmg}`, isCrit ? 'crit' : 'damage', 'enemy'));
             } else if (actionType === 'defend') {
                 np.isDefending = true;
                 const mpGained = Math.min(playerTotalMaxMp - np.mp, 10);
@@ -314,27 +393,43 @@ export const gameReducer = (state, action) => {
                 if (mpGained > 0) newFloatingTexts.push(createFloatingText(`+${mpGained}`, 'mana', 'player'));
             }
 
-            if (ne.hp <= 0) {
-                np.xp += ne.xpReward;
-                np.gold += ne.goldReward;
-                newLogs.unshift(addLog(`🏆 ניצחון! קיבלת ${ne.xpReward} XP ו-${ne.goldReward} זהב.`, 'success'));
+            if (newNe.hp <= 0) {
+                np.xp += newNe.xpReward;
+                np.gold += newNe.goldReward;
+                newLogs.unshift(addLog(`🏆 ניצחון! קיבלת ${newNe.xpReward} XP ו-${newNe.goldReward} זהב.`, 'success'));
                 
                 const { player: finalPlayer, leveledUp } = checkLevelUp(np);
                 if (leveledUp) newLogs.unshift(addLog(`🎉 עלית לרמה ${finalPlayer.level}!`, 'success'));
                 
                 const newShopInventory = getShopInventory(finalPlayer.level);
 
-                let nextPhase = 'home';
+                // Boss victory: unlock next region
+                let newHighest = state.highestRegionUnlocked;
+                let eventData = null;
+                if (newNe.isBoss) {
+                    const nextIdx = state.currentRegionIndex + 1;
+                    if (nextIdx < regions.length && nextIdx > newHighest) {
+                        newHighest = nextIdx;
+                        eventData = {
+                            type: 'boss_win',
+                            title: `🏆 ניצחת את הבוס!`,
+                            desc: `ניצחת את ${newNe.name}! האזור "${regions[nextIdx]?.name}" נפתח לחקירה!`,
+                            icon: 'gem'
+                        };
+                    }
+                }
+
+                let nextPhase = eventData ? 'event' : 'home';
                 let loot = null;
-                if (Math.random() < 0.4 || ne.isBoss) {
+                if (!eventData && (Math.random() < 0.4 || newNe.isBoss)) {
                     const types = ['melee', 'magic', 'armor', 'ring'];
-                    loot = generateItem(finalPlayer.level + (ne.isBoss ? 2 : 0), types[Math.floor(Math.random() * types.length)]);
+                    loot = generateItem(finalPlayer.level + (newNe.isBoss ? 2 : 0), types[Math.floor(Math.random() * types.length)]);
                     nextPhase = 'loot';
                 }
-                return { ...state, lastHitCrit: isCrit, phase: nextPhase, turn: 'player', floatingTexts: newFloatingTexts, player: finalPlayer, enemy: null, lootData: loot, shopInventory: newShopInventory, log: [...newLogs, ...state.log].slice(0, 8) };
+                return { ...state, lastHitCrit: isCrit, phase: nextPhase, turn: 'player', floatingTexts: newFloatingTexts, player: finalPlayer, enemy: null, lootData: loot, shopInventory: newShopInventory, highestRegionUnlocked: newHighest, eventData, log: [...newLogs, ...state.log].slice(0, 8) };
             }
 
-            return { ...state, player: np, enemy: ne, turn: 'enemy', floatingTexts: newFloatingTexts, lastHitCrit: isCrit, log: [...newLogs, ...state.log].slice(0, 8) };
+            return { ...state, player: np, enemy: newNe, turn: 'enemy', floatingTexts: newFloatingTexts, lastHitCrit: isCrit, log: [...newLogs, ...state.log].slice(0, 8) };
         }
 
         case 'ENEMY_TURN': {
@@ -372,7 +467,9 @@ export const gameReducer = (state, action) => {
                         newLogs.unshift(addLog(`💨 התחמקות! זזת בזמן והאויב החטיא.`, 'success'));
                     } else {
                         const effectiveDef = np.isDefending ? playerTotalDef * 2 : playerTotalDef;
-                        let dmg = Math.max(1, Math.floor(ne.str * (0.8 + Math.random() * 0.4)) - effectiveDef);
+                        // Enemy elemental damage
+                        const elemMult = getElementalMultiplier(ne.element, 'רגיל'); // player has neutral base defense
+                        let dmg = Math.max(1, Math.floor(ne.str * (0.8 + Math.random() * 0.4) * elemMult) - effectiveDef);
                         
                         if (ne.isBoss && Math.random() < 0.3) {
                             dmg = Math.floor(dmg * 1.5);
@@ -387,11 +484,20 @@ export const gameReducer = (state, action) => {
             }
 
             if (np.hp <= 0) {
-                newLogs.unshift(addLog('💀 הובסת בקרב... חזרת לעיר עם חצי מהזהב.', 'danger'));
-                np.hp = playerTotalMaxHp; np.mp = playerTotalMaxMp; np.gold = Math.floor(np.gold / 2);
-                np.statuses = [];
-                const newShopInventory = getShopInventory(np.level);
-                return { ...state, phase: 'home', turn: 'player', player: np, enemy: null, enemyAttacking: false, shopInventory: newShopInventory, floatingTexts: newFloatingTexts, log: [...newLogs, ...state.log].slice(0, 8) };
+                newLogs.unshift(addLog('💀 הובסת בקרב... איבדת את כל הזהב ועברת אזור אחד אחורה!', 'danger'));
+                const death = applyDeathPenalty(np);
+                const regionName = regions[death.currentRegionIndex]?.name || 'יער';
+                const newShopInventory = getShopInventory(death.player.level);
+                return {
+                    ...state, phase: 'event', turn: 'player', enemy: null, enemyAttacking: false,
+                    player: death.player,
+                    currentRegionIndex: death.currentRegionIndex,
+                    highestRegionUnlocked: death.highestRegionUnlocked,
+                    shopInventory: newShopInventory,
+                    floatingTexts: newFloatingTexts,
+                    eventData: { type: 'death', title: '💀 הובסת!', desc: `נפלת בקרב... איבדת את כל הזהב שלך ועברת לאחור ל${regionName}. נאבק בבוס כדי לחזור!`, icon: 'skull' },
+                    log: [...newLogs, ...state.log].slice(0, 8)
+                };
             }
 
             return { ...state, player: np, enemy: ne, turn: 'player', floatingTexts: newFloatingTexts, enemyAttacking: false, log: [...newLogs, ...state.log].slice(0, 8) };
