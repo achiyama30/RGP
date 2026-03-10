@@ -41,4 +41,35 @@
   .hide-scrollbar::-webkit-scrollbar { width: 6px; }
   .hide-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .hide-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.1); border-radius: 10px; }
+
+  /* --- New Overhaul Animations --- */
+
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  .animate-shimmer {
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+    background-size: 200% auto;
+    animation: shimmer 3s infinite linear;
+  }
+
+  @keyframes intense-shake {
+    0%, 100% { transform: translate(0, 0) rotate(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translate(-8px, -8px) rotate(-3deg); filter: blur(2px) contrast(1.5); }
+    20%, 40%, 60%, 80% { transform: translate(8px, 8px) rotate(3deg); filter: blur(0px) contrast(1); }
+  }
+  .animate-intense-shake { animation: intense-shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+
+  @keyframes ambient-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.3; }
+    50% { transform: scale(1.1); opacity: 0.6; }
+  }
+  .animate-ambient-pulse { animation: ambient-pulse 4s ease-in-out infinite; }
+
+  @keyframes flash-red {
+    0% { background-color: rgba(220, 38, 38, 0.8); }
+    100% { background-color: transparent; }
+  }
+  .animate-flash-red { animation: flash-red 0.5s ease-out forwards; pointer-events: none; }
 }

@@ -8,12 +8,21 @@ const ItemCard = ({ item, isEquipped, onAction, actionText, actionButtonClass, d
         </div>
     );
 
+    const isEpicOrLegendary = item.rarity.name === 'epic' || item.rarity.name === 'legendary';
+    const isLegendary = item.rarity.name === 'legendary';
+
     return (
-        <div className={`p-4 rounded-xl border ${item.rarity.style} flex flex-col justify-between h-full`}>
-            <div>
+        <div className={`p-4 rounded-xl border ${item.rarity.style} flex flex-col justify-between h-full relative overflow-hidden transition-all duration-300 hover:scale-[1.02] ${isLegendary ? 'shadow-[0_0_15px_rgba(245,158,11,0.5)]' : ''}`}>
+            
+            {/* Shimmer effect for epic/legendary items */}
+            {isEpicOrLegendary && (
+                <div className="absolute inset-0 bg-white/10 animate-shimmer mix-blend-overlay pointer-events-none"></div>
+            )}
+
+            <div className="relative z-10">
                 <div className="flex justify-between items-start mb-2">
-                    <h4 className={`font-bold ${item.rarity.colorClass}`}>{item.name}</h4>
-                    <span className="text-xs bg-black/40 px-2 py-1 rounded text-slate-300">רמה {item.level}</span>
+                    <h4 className={`font-bold ${item.rarity.colorClass} drop-shadow-sm`}>{item.name}</h4>
+                    <span className="text-xs bg-black/50 px-2 py-1 rounded text-slate-300 backdrop-blur-sm border border-slate-700/50">רמה {item.level}</span>
                 </div>
                 
                 <div className="text-sm space-y-1 mt-3">

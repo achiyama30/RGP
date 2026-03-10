@@ -4,13 +4,15 @@ import ProgressBar from './components/ui/ProgressBar';
 import FloatingCombatText from './components/ui/FloatingCombatText';
 import ItemCard from './components/ui/ItemCard';
 import { 
-  Heart, Shield, Sword, Sparkles, Droplet, Skull, AlertTriangle, 
   Coins, Map, Store, Zap, Target, ArrowDown, ArrowUp, Gem, 
-  Activity, Info, X, ChevronRight, HelpCircle, Backpack
+  Activity, Info, X, ChevronRight, HelpCircle, Backpack,
+  Volume2, VolumeX
 } from 'lucide-react';
+import { audioSystem } from './utils/audio';
 
 const App = () => {
     const [state, dispatch] = useGameState();
+    const [isMuted, setIsMuted] = React.useState(audioSystem.muted);
     const { phase, player: p, enemy: ne, log, floatingTexts, lootData, shopInventory, eventData, pendingRing } = state;
 
     const playerTotalStr = p.str + (p.meleeWeapon?.str || 0);
@@ -33,13 +35,33 @@ const App = () => {
         }
     }, [phase, state.turn, ne, state.enemyAttacking, dispatch]);
 
-    const handleAction = (actionType) => dispatch({ type: 'PLAYER_ACTION', payload: { actionType } });
+    // Handle generic button clicks for UI sound
+    const playClick = () => audioSystem.sfxUIClick();
+
+    const handleAction = (actionType) => {
+        if (actionType === 'attack') audioSystem.sfxAttackMelee();
+        if (actionType === 'magic') audioSystem.sfxAttackMagic();
+        if (actionType === 'heavy') audioSystem.sfxAttackHeavy();
+        if (actionType === 'defend') playClick();
+        dispatch({ type: 'PLAYER_ACTION', payload: { actionType } });
+    };
+
+    const toggleMute = () => {
+        setIsMuted(audioSystem.toggleMute());
+    };
 
     // Render Home Phase
     if (phase === 'home') {
         return (
             <div className="max-w-md mx-auto min-h-screen relative overflow-hidden bg-slate-950 p-6 flex flex-col pt-12">
-                <div className="text-center mb-8">
+                <div className="text-center mb-8 relative">
+                    <button 
+                        onClick={toggleMute} 
+                        className="absolute right-0 top-0 text-slate-500 hover:text-slate-300 p-2 rounded-full bg-slate-900 border border-slate-800 transition-colors"
+                        title={isMuted ? "הפעל סאונד" : "השתק סאונד"}
+                    >
+                        {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} className="text-emerald-500" />}
+                    </button>
                     <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-200 to-amber-500 drop-shadow-lg mb-2">RPG Quest</h1>
                     <p className="text-slate-400 font-medium">הרפתקה אינסופית ממתינה לך</p>
                 </div>
@@ -84,13 +106,13 @@ const App = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mt-auto mb-8">
-                    <button onClick={() => dispatch({ type: 'EXPLORE' })} className="relative overflow-hidden group bg-gradient-to-br from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white font-bold py-5 px-6 rounded-2xl shadow-xl shadow-indigo-900/20 transition-all active:scale-95 border border-indigo-500/50 flex flex-col items-center justify-center gap-2">
+                    <button onClick={() => { playClick(); dispatch({ type: 'EXPLORE' }); }} className="relative overflow-hidden group bg-gradient-to-br from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white font-bold py-5 px-6 rounded-2xl shadow-xl shadow-indigo-900/20 transition-all active:scale-95 border border-indigo-500/50 flex flex-col items-center justify-center gap-2">
                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
                         <Map size={28} className="relative z-10" />
                         <span className="relative z-10 text-lg">צא להרפתקה</span>
                     </button>
                     
-                    <button onClick={() => dispatch({ type: 'GO_SHOP' })} className="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-200 py-3 px-4 rounded-2xl border border-slate-700 shadow-lg transition-all active:scale-95 flex flex-col items-center justify-center gap-2">
+                    <button onClick={() => { playClick(); dispatch({ type: 'GO_SHOP' }); }} className="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-200 py-3 px-4 rounded-2xl border border-slate-700 shadow-lg transition-all active:scale-95 flex flex-col items-center justify-center gap-2">
                         <Store size={24} className="text-emerald-400" />
                         <span>חנות מקומית</span>
                     </button>
@@ -144,7 +166,7 @@ const App = () => {
                 )}
 
                 <button 
-                    onClick={() => dispatch({ type: 'CLOSE_EVENT' })}
+                    onClick={() => { playClick(); dispatch({ type: 'CLOSE_EVENT' }); }}
                     className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-12 rounded-xl transition-colors border border-slate-700 w-full max-w-xs"
                 >
                     המשך
@@ -257,7 +279,7 @@ const App = () => {
 
                 <div className="space-y-4">
                     <button 
-                        onClick={() => dispatch({ type: 'EQUIP_LOOT' })}
+                        onClick={() => { audioSystem.sfxEquip(); dispatch({ type: 'EQUIP_LOOT' }); }}
                         className="w-full relative overflow-hidden group bg-gradient-to-br from-emerald-600 to-emerald-800 text-white font-bold py-4 rounded-xl border border-emerald-500/50 shadow-lg"
                     >
                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
@@ -267,7 +289,7 @@ const App = () => {
                     </button>
                     
                     <button 
-                        onClick={() => dispatch({ type: 'LEAVE_LOOT' })}
+                        onClick={() => { audioSystem.sfxGold(); dispatch({ type: 'LEAVE_LOOT' }); }}
                         className="w-full bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold py-4 rounded-xl border border-slate-700 transition-colors flex justify-center items-center gap-2"
                     >
                         <Coins size={18} className="text-yellow-500" />
@@ -323,12 +345,15 @@ const App = () => {
     // Render Battle Phase
     if (phase === 'battle') {
         const isPlayerTurn = state.turn === 'player';
+        
+        // Compute if player recently took damage to shake screen
+        const hasTakenDamage = state.enemyAttacking && state.turn === 'enemy';
 
         return (
-            <div className="max-w-md mx-auto min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
+            <div className={`max-w-md mx-auto min-h-screen bg-slate-950 flex flex-col relative overflow-hidden ${hasTakenDamage ? 'animate-intense-shake' : ''}`}>
                 {/* Background visual elements */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black pointer-events-none"></div>
-                {state.lastHitCrit && <div className="absolute inset-0 bg-red-900/10 pointer-events-none z-0"></div>}
+                <div className={`absolute inset-0 pointer-events-none transition-colors duration-200 ${hasTakenDamage ? 'bg-red-900/30 animate-flash-red' : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black z-0'}`}></div>
+                {state.lastHitCrit && <div className="absolute inset-0 bg-yellow-900/10 pointer-events-none z-0"></div>}
 
                 {/* Floating Texts container relative positioning area */}
                 <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden flex justify-center items-center">
@@ -414,7 +439,7 @@ const App = () => {
 
                     <div className="mt-3">
                         <button 
-                            onClick={() => dispatch({ type: 'HEAL_IN_BATTLE' })}
+                            onClick={() => { audioSystem.sfxHeal(); dispatch({ type: 'HEAL_IN_BATTLE' }); }}
                             disabled={!isPlayerTurn || p.potions <= 0 || p.hp >= playerTotalMaxHp}
                             className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border transition-all font-bold text-sm ${(!isPlayerTurn || p.potions <= 0 || p.hp >= playerTotalMaxHp) ? 'bg-slate-900 border-slate-800 text-slate-600 opacity-50' : 'bg-emerald-950/50 border-emerald-800 hover:bg-emerald-900/60 hover:border-emerald-600 text-emerald-400 shadow-inner'}`}
                         >
