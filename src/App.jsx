@@ -54,8 +54,8 @@ const App = () => {
     // Render Home Phase
     if (phase === 'home') {
         return (
-            <div className="max-w-md mx-auto min-h-screen relative overflow-hidden bg-slate-950 p-6 flex flex-col pt-12">
-                <div className="text-center mb-8 relative">
+            <div className="w-full max-w-4xl mx-auto min-h-screen relative overflow-hidden bg-slate-950 p-6 md:p-12 flex flex-col pt-12">
+                <div className="text-center mb-12 relative">
                     <button 
                         onClick={toggleMute} 
                         className="absolute right-0 top-0 text-slate-500 hover:text-slate-300 p-2 rounded-full bg-slate-900 border border-slate-800 transition-colors"
@@ -144,8 +144,8 @@ const App = () => {
     if (phase === 'event') {
         const isBad = eventData.type === 'trap' || eventData.type === 'death';
         return (
-            <div className="max-w-md mx-auto min-h-screen bg-slate-950 p-6 flex flex-col justify-center items-center text-center">
-                <div className={`w-32 h-32 rounded-full flex items-center justify-center mb-8 shadow-2xl ${isBad ? 'bg-rose-950/50 shadow-rose-900/50' : 'bg-emerald-950/50 shadow-emerald-900/50'}`}>
+            <div className="w-full max-w-2xl mx-auto min-h-screen bg-slate-950 p-6 flex flex-col justify-center items-center text-center">
+                <div className={`w-32 h-32 md:w-48 md:h-48 rounded-full flex items-center justify-center mb-8 shadow-2xl ${isBad ? 'bg-rose-950/50 shadow-rose-900/50' : 'bg-emerald-950/50 shadow-emerald-900/50'}`}>
                     {eventData.icon === 'skull' && <Skull size={64} className="text-rose-500" />}
                     {eventData.icon === 'alert' && <AlertTriangle size={64} className="text-orange-500" />}
                     {eventData.icon === 'gem' && <Gem size={64} className="text-emerald-400" />}
@@ -183,7 +183,7 @@ const App = () => {
     // Render Shop Phase
     if (phase === 'shop') {
         return (
-            <div className="max-w-md mx-auto h-[100dvh] overflow-hidden bg-slate-950 p-6 flex flex-col pt-12">
+            <div className="w-full max-w-4xl mx-auto h-[100dvh] overflow-hidden bg-slate-950 p-6 md:p-8 flex flex-col pt-12">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold flex items-center gap-2 text-slate-100">
                         <Store className="text-emerald-400" /> חנות ציוד
@@ -232,7 +232,7 @@ const App = () => {
                 
                 <div className="flex-1 min-h-0 relative">
                     <div className="absolute inset-0 overflow-y-auto hide-scrollbar pb-32">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                             {Object.entries(shopInventory).map(([type, item]) => item && (
                                 <ItemCard 
                                     key={type} 
@@ -267,8 +267,8 @@ const App = () => {
     // Render Loot Phase
     if (phase === 'loot' && lootData) {
         return (
-            <div className="max-w-md mx-auto min-h-screen bg-slate-950 p-6 flex flex-col justify-center">
-                <div className="text-center mb-8">
+            <div className="w-full max-w-2xl mx-auto min-h-screen bg-slate-950 p-6 flex flex-col justify-center">
+                <div className="text-center mb-10">
                     <div className="w-20 h-20 mx-auto bg-yellow-900/30 rounded-full flex items-center justify-center mb-4 border-2 border-yellow-500/50 relative">
                         <div className="absolute inset-0 bg-yellow-400 animate-pulse rounded-full opacity-20 blur-md"></div>
                         <Sparkles size={32} className="text-yellow-400 relative z-10" />
@@ -355,7 +355,7 @@ const App = () => {
         const hasTakenDamage = state.enemyAttacking && state.turn === 'enemy';
 
         return (
-            <div className={`max-w-md mx-auto min-h-screen bg-slate-950 flex flex-col relative overflow-hidden ${hasTakenDamage ? 'animate-intense-shake' : ''}`}>
+            <div className={`w-full max-w-4xl mx-auto min-h-screen bg-slate-950 flex flex-col relative overflow-hidden ${hasTakenDamage ? 'animate-intense-shake' : ''}`}>
                 {/* Background visual elements */}
                 <div className={`absolute inset-0 pointer-events-none transition-colors duration-200 ${hasTakenDamage ? 'bg-red-900/30 animate-flash-red' : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black z-0'}`}></div>
                 {state.lastHitCrit && <div className="absolute inset-0 bg-yellow-900/10 pointer-events-none z-0"></div>}
