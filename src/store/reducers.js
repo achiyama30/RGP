@@ -83,7 +83,7 @@ export const gameReducer = (state, action) => {
                     const goldFound = Math.floor(15 + Math.random() * 25 * p.level);
                     return {
                         ...state, phase: 'event',
-                        eventData: { type: 'treasure', title: 'אוצר נסתר!', desc: 'מצאת תיבה עתיקה זרוקה בצידי הדרך. היא הכילה מטבעות זהב נוצצים!', gold: goldFound, icon: 'gem' },
+                        eventData: { type: 'treasure', title: 'אוצר נסתר!', desc: 'מצאת תיבה עתיקה בצידי הדרך, חצי קבורה באדמה. פתחת אותה וגילית שהיא מלאה במטבעות זהב נוצצים!', gold: goldFound, icon: 'gem' },
                         player: { ...p, gold: p.gold + goldFound }
                     };
                 }

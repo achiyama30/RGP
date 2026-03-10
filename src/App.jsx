@@ -136,6 +136,13 @@ const App = () => {
                     {eventData.desc}
                 </p>
 
+                {eventData.type === 'treasure' && (
+                    <div className="flex items-center justify-center gap-3 text-3xl font-black text-yellow-400 mb-10 bg-yellow-900/20 py-4 px-8 rounded-2xl border-2 border-yellow-600/50 shadow-[0_0_30px_rgba(234,179,8,0.2)]">
+                        <Coins size={36} className="animate-pulse" />
+                        +{eventData.gold} זהב
+                    </div>
+                )}
+
                 <button 
                     onClick={() => dispatch({ type: 'CLOSE_EVENT' })}
                     className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-12 rounded-xl transition-colors border border-slate-700 w-full max-w-xs"
