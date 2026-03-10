@@ -230,7 +230,7 @@ const App = () => {
 
                 <h3 className="text-lg font-bold mb-4 text-slate-400 border-b border-slate-800 pb-2">ציוד למכירה לרמתך ({p.level}):</h3>
                 
-                <div className="grid grid-cols-2 gap-4 overflow-y-auto hide-scrollbar pb-24" style={{maxHeight: 'calc(100vh - 250px)'}}>
+                <div className="grid grid-cols-2 gap-4 overflow-y-auto hide-scrollbar pb-32" style={{maxHeight: 'calc(100vh - 250px)'}}>
                     {Object.entries(shopInventory).map(([type, item]) => item && (
                         <ItemCard 
                             key={type} 
