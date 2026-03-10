@@ -4,6 +4,7 @@ import ProgressBar from './components/ui/ProgressBar';
 import FloatingCombatText from './components/ui/FloatingCombatText';
 import ItemCard from './components/ui/ItemCard';
 import { 
+  Heart, Shield, Sword, Sparkles, Droplet, Skull, AlertTriangle,
   Coins, Map, Store, Zap, Target, ArrowDown, ArrowUp, Gem, 
   Activity, Info, X, ChevronRight, HelpCircle, Backpack,
   Volume2, VolumeX
