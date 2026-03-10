@@ -208,7 +208,7 @@ const App = () => {
                     <div className="flex items-center gap-4">
                         <div className="text-sm font-medium text-slate-300">יש לך: {p.potions}</div>
                         <button 
-                            onClick={() => dispatch({ type: 'BUY_ITEM', payload: { type: 'potion', item: { cost: 15 } } })}
+                            onClick={() => { audioSystem.sfxGold(); dispatch({ type: 'BUY_ITEM', payload: { type: 'potion', item: { cost: 15 } } }); }}
                             disabled={p.gold < 15}
                             className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 ${p.gold >= 15 ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}
                         >
@@ -235,7 +235,7 @@ const App = () => {
                         <ItemCard 
                             key={type} 
                             item={item} 
-                            onAction={(t, i) => dispatch({ type: 'BUY_ITEM', payload: { type: t, item: i } })}
+                            onAction={(t, i) => { audioSystem.sfxGold(); dispatch({ type: 'BUY_ITEM', payload: { type: t, item: i } }); }}
                             actionText={<>{item.cost} <Coins size={14}/></>}
                             disabled={p.gold < item.cost}
                             actionButtonClass={p.gold >= item.cost ? 'bg-yellow-600 hover:bg-yellow-500 text-white' : 'bg-slate-800 text-slate-500 border border-slate-700'}
@@ -250,7 +250,7 @@ const App = () => {
 
                 <div className="mt-auto pt-4 absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent">
                     <button 
-                        onClick={() => dispatch({ type: 'LEAVE_SHOP' })}
+                        onClick={() => { playClick(); dispatch({ type: 'LEAVE_SHOP' }); }}
                         className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl border border-slate-700 transition-colors shadow-lg"
                     >
                         חזור לעיר
