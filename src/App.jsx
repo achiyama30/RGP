@@ -89,10 +89,13 @@ const App = () => {
         setIsMuted(audioSystem.toggleMute());
     };
 
+    const activeRegion = regions[state.currentRegionIndex] || regions[0];
+    const bgRegionClass = `bg-region-${activeRegion.id}`;
+
     // Render Home Phase
     if (phase === 'home') {
         return (
-            <div className="w-full max-w-4xl mx-auto min-h-screen relative overflow-hidden bg-main-menu p-6 md:p-10 flex flex-col pt-10 animate-in fade-in duration-500">
+            <div className={`w-full max-w-4xl mx-auto min-h-screen relative overflow-hidden ${bgRegionClass} p-6 md:p-10 flex flex-col pt-10 animate-in fade-in duration-500`} dir="rtl">
                 
                 {/* Ambient Background Glows - very subtle */}
                 <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-900/20 rounded-full blur-[120px] pointer-events-none animate-ambient-pulse"></div>
@@ -282,7 +285,7 @@ const App = () => {
         const isMerchant = eventData.type === 'merchant';
         const isTraveler = eventData.type === 'traveler';
         return (
-            <div className="w-full max-w-2xl mx-auto min-h-screen bg-main-menu p-6 flex flex-col justify-center items-center text-center">
+            <div className={`w-full max-w-2xl mx-auto min-h-screen ${bgRegionClass} p-6 flex flex-col justify-center items-center text-center`} dir="rtl">
                 <div className={`w-32 h-32 md:w-48 md:h-48 rounded-full flex items-center justify-center mb-8 shadow-2xl ${isBad ? 'bg-rose-950/50 shadow-rose-900/50' : 'bg-emerald-950/50 shadow-emerald-900/50'}`}>
                     {eventData.icon === 'skull' && <Skull size={64} className="text-rose-500" />}
                     {eventData.icon === 'alert' && <AlertTriangle size={64} className="text-orange-500" />}
@@ -619,7 +622,7 @@ const App = () => {
     // Render Loot Phase
     if (phase === 'loot' && lootData) {
         return (
-            <div className="w-full max-w-2xl mx-auto min-h-screen bg-main-menu p-6 flex flex-col justify-center animate-in zoom-in-95 duration-500">
+            <div className={`w-full max-w-2xl mx-auto min-h-screen ${bgRegionClass} p-6 flex flex-col justify-center animate-in zoom-in-95 duration-500`} dir="rtl">
                 <div className="text-center mb-10 relative z-10">
                     <div className="w-24 h-24 mx-auto bg-gradient-to-br from-yellow-900/40 to-amber-900/40 rounded-[2rem] flex items-center justify-center mb-6 border border-yellow-500/30 relative shadow-[0_0_30px_rgba(245,158,11,0.2)] rotate-3">
                         <div className="absolute inset-0 bg-yellow-400 animate-pulse rounded-[2rem] opacity-20 blur-xl"></div>
@@ -672,7 +675,7 @@ const App = () => {
     if (phase === 'ring_replace' && pendingRing) {
         const isFromStash = state.pendingRingAction === 'stash';
         return (
-            <div className="w-full max-w-md mx-auto min-h-screen bg-main-menu p-6 flex flex-col justify-center animate-in fade-in duration-300">
+            <div className={`w-full max-w-md mx-auto min-h-screen ${bgRegionClass} p-6 flex flex-col justify-center animate-in fade-in duration-300`} dir="rtl">
                 <h2 className="text-3xl font-black font-outfit text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 drop-shadow-sm">בחר איזו טבעת להחליף</h2>
                 <p className="text-slate-400 text-center mb-8 text-sm">איזו טבעת תרצה להחליף ב-<span className="font-bold text-slate-200">{pendingRing.name}</span>?</p>
 
@@ -721,7 +724,7 @@ const App = () => {
         const hasTakenDamage = state.enemyAttacking && state.turn === 'enemy';
 
         return (
-            <div className={`w-full max-w-4xl mx-auto min-h-screen bg-battle flex flex-col relative overflow-hidden ${hasTakenDamage ? 'animate-intense-shake' : ''}`}>
+            <div className={`w-full max-w-4xl mx-auto min-h-screen ${bgRegionClass} flex flex-col relative overflow-hidden ${hasTakenDamage ? 'animate-intense-shake' : ''}`} dir="rtl">
                 {/* Static background gradient - never changes, no flash */}
                 <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_rgba(30,20,40,0.5),_transparent)] z-0"></div>
                 {/* Damage Flash - independent overlay, fades in/out smoothly */}

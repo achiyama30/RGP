@@ -21,7 +21,10 @@ const images = {
     "battle_arena_bg_1773838087683.png": "battle.png",
     "map_bg_1773838250453.png": "map.png",
     "shop_bg_1773840446678.png": "shop.png",
-    "camp_bg_1773840502118.png": "camp.png"
+    "camp_bg_1773840502118.png": "camp.png",
+    "forest_bg_1774299396940.png": "forest.png",
+    "volcano_bg_1774299417798.png": "volcano.png",
+    "tundra_bg_1774299446146.png": "tundra.png"
 };
 
 console.log("🎨 Copying background images from Ai brain...");
