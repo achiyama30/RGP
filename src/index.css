@@ -127,8 +127,9 @@
     background-size: 200% auto;
     animation: shimmer 3s infinite linear;
   }
+}
 
-  /* Phase Background Layers — images in /public/assets/bg/ */
+/* Phase Background Layers — images in /public/assets/bg/ */
   .bg-main-menu {
     background-image: linear-gradient(to bottom, rgba(4,6,10,0.3) 0%, rgba(4,6,10,0.85) 100%), url('/assets/bg/main.png');
     background-size: cover;
@@ -173,4 +174,3 @@
     background-position: center;
     background-attachment: fixed;
   }
-}
