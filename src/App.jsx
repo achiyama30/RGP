@@ -3,14 +3,24 @@ import { useGameState } from './hooks/useGameState';
 import ProgressBar from './components/ui/ProgressBar';
 import FloatingCombatText from './components/ui/FloatingCombatText';
 import ItemCard from './components/ui/ItemCard';
-import { regions } from './utils/constants';
+import MiningGame from './components/minigames/MiningGame';
+import FishingGame from './components/minigames/FishingGame';
+import { regions, campUpgrades, MINERALS, FISH_TYPES, ALCHEMY_RECIPES } from './utils/constants';
+import { getUpgradeCost } from './utils/generators';
 import { 
   Heart, Shield, Sword, Sparkles, Droplet, Skull, AlertTriangle,
   Coins, Map, Store, Zap, Target, ArrowDown, ArrowUp, Gem, 
   Activity, Info, X, ChevronRight, HelpCircle, Backpack,
-  Volume2, VolumeX, Flame, ShoppingBag
+  Volume2, VolumeX, Flame, ShoppingBag, Tent, Hammer, Box, ArrowRight,
+  Sun, Moon, Scroll, Clock, Gift
 } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { audioSystem } from './utils/audio';
+
+const RenderDynamicIcon = ({ name, size = 24, className = '' }) => {
+    const IconComponent = LucideIcons[name] || LucideIcons.HelpCircle;
+    return <IconComponent size={size} className={className} />;
+};
 
 const App = () => {
     const [state, dispatch] = useGameState();
@@ -19,11 +29,27 @@ const App = () => {
     const currentRegion = regions[state.currentRegionIndex];
     const elementColors = { 'אש': 'text-orange-400 bg-orange-900/30 border-orange-700', 'מים': 'text-blue-400 bg-blue-900/30 border-blue-700', 'טבע': 'text-emerald-400 bg-emerald-900/30 border-emerald-700', 'רגיל': 'text-slate-400 bg-slate-800 border-slate-700' };
 
-    const playerTotalStr = p.str + (p.meleeWeapon?.str || 0);
-    const playerTotalMag = p.mag + (p.magicWeapon?.mag || 0);
-    const playerTotalDef = p.def + (p.armor?.def || 0);
-    const playerTotalMaxMp = p.baseMaxMp + (p.magicWeapon?.mpBonus || 0) + (p.armor?.mpBonus || 0);
-    const playerTotalMaxHp = p.baseMaxHp + (p.ring1?.hpBonus || 0) + (p.ring2?.hpBonus || 0);
+    let playerTotalStr = p.str + (p.meleeWeapon?.str || 0);
+    let playerTotalMag = p.mag + (p.magicWeapon?.mag || 0);
+    let playerTotalDef = p.def + (p.armor?.def || 0);
+    let playerTotalMaxMp = p.baseMaxMp + (p.magicWeapon?.mpBonus || 0) + (p.armor?.mpBonus || 0);
+    let playerTotalMaxHp = p.baseMaxHp + (p.ring1?.hpBonus || 0) + (p.ring2?.hpBonus || 0);
+
+    if (state.activeBuffs) {
+        state.activeBuffs.forEach(buff => {
+            if (buff.type === 'str') playerTotalStr = Math.floor(playerTotalStr * (1 + buff.value));
+            if (buff.type === 'def') playerTotalDef = Math.floor(playerTotalDef * (1 + buff.value));
+            if (buff.type === 'all' || buff.type === 'allDmg') {
+                playerTotalStr = Math.floor(playerTotalStr * (1 + buff.value));
+                playerTotalMag = Math.floor(playerTotalMag * (1 + buff.value));
+                playerTotalDef = Math.floor(playerTotalDef * (1 + buff.value));
+            }
+            if (buff.type === 'mithril_elixir') {
+                playerTotalStr = Math.floor(playerTotalStr * (1 + buff.value));
+                playerTotalDef = Math.floor(playerTotalDef * (1 + buff.value));
+            }
+        });
+    }
 
     // AI logic trigger
     useEffect(() => {
@@ -38,6 +64,14 @@ const App = () => {
             return () => clearTimeout(timer1);
         }
     }, [phase, state.turn, ne, state.enemyAttacking, dispatch]);
+
+    // Time & Quest Checker
+    useEffect(() => {
+        const interval = setInterval(() => {
+            dispatch({ type: 'CHECK_TIME' });
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [dispatch]);
 
     // Handle generic button clicks for UI sound
     const playClick = () => audioSystem.sfxUIClick();
@@ -58,118 +92,183 @@ const App = () => {
     // Render Home Phase
     if (phase === 'home') {
         return (
-            <div className="w-full max-w-4xl mx-auto min-h-screen relative overflow-hidden bg-slate-950 p-6 md:p-12 flex flex-col pt-12">
-                <div className="text-center mb-12 relative">
+            <div className="w-full max-w-4xl mx-auto min-h-screen relative overflow-hidden bg-main-menu p-6 md:p-10 flex flex-col pt-10 animate-in fade-in duration-500">
+                
+                {/* Ambient Background Glows - very subtle */}
+                <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-900/20 rounded-full blur-[120px] pointer-events-none animate-ambient-pulse"></div>
+                <div className="absolute bottom-0 left-0 w-80 h-80 bg-amber-900/15 rounded-full blur-[120px] pointer-events-none animate-ambient-pulse" style={{ animationDelay: '2.5s' }}></div>
+
+                <div className="text-center mb-12 relative z-10">
                     <button 
                         onClick={toggleMute} 
-                        className="absolute right-0 top-0 text-slate-500 hover:text-slate-300 p-2 rounded-full bg-slate-900 border border-slate-800 transition-colors"
+                        className="absolute right-0 top-0 text-slate-500 hover:text-slate-300 p-3 rounded-full glass-button transition-colors"
                         title={isMuted ? "הפעל סאונד" : "השתק סאונד"}
                     >
                         {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} className="text-emerald-500" />}
                     </button>
-                    <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-200 to-amber-500 drop-shadow-lg mb-2">RPG Quest</h1>
-                    <p className="text-slate-400 font-medium">הרפתקה אינסופית ממתינה לך</p>
+                    <h1 className="text-4xl md:text-5xl font-semibold text-amber-400/90 mb-4 tracking-wide">RPG Quest</h1>
+                    <div className="flex items-center justify-center gap-2 text-slate-400 font-medium capitalize">
+                        {state.timeSystem.isDay ? (
+                            <span className="flex items-center gap-1 text-amber-400 bg-amber-900/20 px-2 py-0.5 rounded-full text-xs border border-amber-700/30">
+                                <Sun size={14} /> יום
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-1 text-indigo-400 bg-indigo-900/20 px-2 py-0.5 rounded-full text-xs border border-indigo-700/30">
+                                <Moon size={14} /> לילה
+                            </span>
+                        )}
+                        <span>•</span>
+                        <span>הרפתקה אינסופית ממתינה לך</span>
+                    </div>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-700/50 rounded-2xl p-5 mb-6 shadow-2xl backdrop-blur-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
+                <div className="glass-panel p-5 mb-6 relative overflow-hidden rounded-xl">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-900/15 rounded-full blur-3xl"></div>
                     
-                    <div className="flex justify-between items-center mb-4 relative z-10">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl font-bold shadow-lg shadow-purple-900/50 border-2 border-slate-800">
-                                ר{p.level}
+                    <div className="flex justify-between items-center mb-6 relative z-10">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-xl bg-indigo-900/60 flex items-center justify-center text-2xl font-semibold text-indigo-200 border border-indigo-700/40">
+                                {p.level}
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-slate-100">הלוחם</h2>
-                                <div className="text-xs text-slate-400 flex items-center gap-1">
-                                    <Coins size={12} className="text-yellow-400" /> {p.gold} זהב
+                                <div className="flex items-center gap-2 mb-1">
+                                    <h2 className="text-xl font-semibold text-slate-200 tracking-wide">הלוחם</h2>
+                                    <span className="text-xs bg-indigo-950/60 text-indigo-300/80 px-2 py-0.5 rounded border border-indigo-800/40 font-medium">עולם {state.worldLevel || 1}</span>
+                                </div>
+                                <div className="text-sm font-medium text-amber-400/90 flex items-center gap-1.5 w-fit">
+                                    <Coins size={13} /> {p.gold.toLocaleString()} זהב
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="space-y-3 relative z-10">
-                        <ProgressBar current={p.hp} max={playerTotalMaxHp} colorClass="bg-gradient-to-r from-rose-600 to-rose-400" label="חיים" />
-                        <ProgressBar current={p.mp} max={playerTotalMaxMp} colorClass="bg-gradient-to-r from-blue-600 to-blue-400" label="מאנה" />
-                        <ProgressBar current={p.xp} max={p.level * 50} colorClass="bg-gradient-to-r from-emerald-600 to-emerald-400" label="ניסיון" />
+                    <div className="space-y-4 relative z-10 w-full md:w-5/6">
+                        <ProgressBar current={p.hp} max={playerTotalMaxHp} colorClass="bg-gradient-to-r from-rose-600 to-rose-400 shadow-[0_0_10px_rgba(225,29,72,0.4)]" label="חיים" />
+                        <ProgressBar current={p.mp} max={playerTotalMaxMp} colorClass="bg-gradient-to-r from-blue-600 to-blue-400 shadow-[0_0_10px_rgba(37,99,235,0.4)]" label="מאנה" />
+                        <ProgressBar current={p.xp} max={p.level * 50} colorClass="bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_10px_rgba(5,150,105,0.4)]" label="ניסיון" />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 mt-5 text-sm font-medium relative z-10 bg-slate-950/50 p-3 rounded-xl border border-slate-800/50">
-                        <div className="flex flex-col items-center justify-center text-rose-300">
-                            <Sword size={20} className="mb-1 opacity-80" />
+                    <div className="grid grid-cols-3 gap-2 mt-5 text-sm font-medium relative z-10 border-t border-white/5 pt-4">
+                        <div className="flex flex-col items-center justify-center text-rose-300/80 gap-1">
+                            <Sword size={16} className="opacity-60" />
                             <span>{playerTotalStr} התקפה</span>
                         </div>
-                        <div className="flex flex-col items-center justify-center text-blue-300">
-                            <Zap size={20} className="mb-1 opacity-80" />
+                        <div className="flex flex-col items-center justify-center text-blue-300/80 gap-1">
+                            <Zap size={16} className="opacity-60" />
                             <span>{playerTotalMag} קסם</span>
                         </div>
-                        <div className="flex flex-col items-center justify-center text-slate-300 border-r border-slate-800">
-                            <Shield size={20} className="mb-1 opacity-80" />
+                        <div className="flex flex-col items-center justify-center text-slate-400 gap-1">
+                            <Shield size={16} className="opacity-60" />
                             <span>{playerTotalDef} הגנה</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                    <button onClick={() => { playClick(); dispatch({ type: 'EXPLORE' }); }} className="relative overflow-hidden group bg-gradient-to-br from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white font-bold py-5 px-6 rounded-2xl shadow-xl shadow-indigo-900/20 transition-all active:scale-95 border border-indigo-500/50 flex flex-col items-center justify-center gap-2">
-                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
-                        <Map size={28} className="relative z-10" />
-                        <span className="relative z-10 text-lg">צא להרפתקה</span>
-                        {currentRegion && <span className="relative z-10 text-xs opacity-70">{currentRegion.name}</span>}
+                {/* Active Buffs (Home View) */}
+                {state.activeBuffs && state.activeBuffs.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4 justify-center">
+                        {state.activeBuffs.map((buff, i) => (
+                            <div key={i} className="bg-indigo-900/60 text-indigo-200 px-3 py-1.5 rounded-full text-xs font-bold font-outfit border border-indigo-700/50 flex items-center gap-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-sm">
+                                <span className="flex items-center text-indigo-300 opacity-90"><RenderDynamicIcon name={buff.icon || 'Star'} size={14} /></span> 
+                                <span className="tracking-wide text-indigo-100">{buff.name}</span>
+                                <span className="opacity-60 ml-1 text-[10px] font-sans">({buff.battlesLeft} הקרבות)</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                <div className="grid grid-cols-4 gap-3 mb-6">
+                    <button onClick={() => { playClick(); dispatch({ type: 'EXPLORE' }); }} className="col-span-2 relative overflow-hidden group glass-button border border-indigo-700/30 text-white font-semibold py-5 px-3 rounded-xl transition-all active:scale-[0.98] flex flex-col items-center justify-center gap-2">
+                        <Map size={26} className="text-indigo-300/80" />
+                        <span className="text-sm tracking-wide text-slate-200">זירת קרב</span>
                     </button>
                     
-                    <button onClick={() => { playClick(); dispatch({ type: 'GO_SHOP' }); }} className="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-200 py-3 px-4 rounded-2xl border border-slate-700 shadow-lg transition-all active:scale-95 flex flex-col items-center justify-center gap-2">
-                        <Store size={24} className="text-emerald-400" />
-                        <span>חנות מקומית</span>
+                    <button onClick={() => { playClick(); dispatch({ type: 'GO_SHOP' }); }} className="glass-button text-slate-300 py-4 px-3 rounded-xl group flex flex-col items-center justify-center gap-2 active:scale-[0.98] transition-all">
+                        <Store size={22} className="text-emerald-400/80" />
+                        <span className="text-xs font-medium text-slate-400">חנות</span>
+                    </button>
+                    
+                    <button onClick={() => { playClick(); dispatch({ type: 'GO_CAMP' }); }} className="glass-button text-slate-300 py-4 px-3 rounded-xl group flex flex-col items-center justify-center gap-2 active:scale-[0.98] transition-all">
+                        <Tent size={22} className="text-amber-400/80" />
+                        <span className="text-xs font-medium text-slate-400">מחנה</span>
+                    </button>
+
+                    <button onClick={() => { playClick(); dispatch({ type: 'SET_PHASE', payload: 'quests' }); }} className="col-span-2 glass-button text-slate-300 py-3 px-3 rounded-xl group flex items-center justify-center gap-3 active:scale-[0.98] transition-all relative">
+                        {state.quests.active.some(q => q.completed && !q.claimed) && (
+                            <span className="absolute top-2 right-2 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-60"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                            </span>
+                        )}
+                        <Scroll size={18} className="text-slate-400" />
+                        <span className="text-sm font-medium text-slate-300">משימות יומיות</span>
                     </button>
                 </div>
 
                 {/* World Map - Region Selector */}
-                <div className="bg-slate-900 border border-slate-700/50 rounded-2xl p-4 mb-6">
-                    <h3 className="text-slate-400 text-sm font-bold mb-3 flex items-center gap-2">
-                        <Map size={14} /> מפת העולם
-                    </h3>
-                    <div className="grid grid-cols-3 gap-2">
+                <div className="glass-panel p-4 rounded-xl mb-6">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-slate-400 text-sm font-medium tracking-wider uppercase flex items-center gap-2">
+                            <Map size={14} className="text-slate-500" /> מפת העולם
+                        </h3>
+                        <div className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                            רמת עולם {state.worldLevel || 1}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
                         {regions.map((region, idx) => {
                             const unlocked = idx <= state.highestRegionUnlocked;
                             const isActive = idx === state.currentRegionIndex;
                             const elemCls = elementColors[region.element] || elementColors['רגיל'];
+                            
                             return (
                                 <button 
                                     key={region.id}
                                     onClick={() => { playClick(); dispatch({ type: 'SELECT_REGION', payload: { index: idx } }); }}
                                     disabled={!unlocked}
-                                    className={`relative flex flex-col items-center gap-1 py-3 px-2 rounded-xl border text-xs font-bold transition-all ${
-                                        !unlocked ? 'bg-slate-900/50 border-slate-800 text-slate-600 opacity-50 cursor-not-allowed' :
-                                        isActive ? `border-2 ${elemCls}` :
-                                        'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-slate-500'
+                                    className={`relative flex flex-col items-center gap-1 py-3 px-2 rounded-lg border transition-all overflow-hidden ${
+                                        !unlocked ? 'bg-slate-950/50 border-slate-800/30 text-slate-600 opacity-40 cursor-not-allowed grayscale' :
+                                        isActive ? `border ${elemCls} bg-white/[0.03] scale-[1.01] z-10` :
+                                        'border-slate-800/50 text-slate-400 hover:border-slate-600/50 hover:bg-white/[0.02]'
                                     }`}
                                 >
-                                    {!unlocked && <span className="text-lg">🔒</span>}
-                                    {unlocked && <span className="text-lg">{idx === 0 ? '🌲' : idx === 1 ? '🌋' : '❄️'}</span>}
-                                    <span className="text-center leading-tight">{region.name}</span>
-                                    <span className={`text-[9px] px-1.5 py-0.5 rounded border ${elemCls}`}>{region.element}</span>
-                                    {isActive && <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border border-slate-900"></span>}
+                                    {isActive && <div className="absolute inset-0 bg-white/5 pointer-events-none"></div>}
+                                    
+                                    {!unlocked && <span className="text-2xl drop-shadow-md opacity-30 text-slate-700"><LucideIcons.Lock size={28} /></span>}
+                                    {unlocked && <span className="text-slate-300 drop-shadow-lg transform transition-transform group-hover:scale-110 mb-1">{idx === 0 ? <LucideIcons.TreePine size={28} /> : idx === 1 ? <LucideIcons.MountainSnow size={28} /> : <LucideIcons.Snowflake size={28} />}</span>}
+                                    
+                                    <span className={`text-center leading-tight text-xs font-medium ${isActive ? 'text-slate-200' : 'text-slate-500'}`}>{region.name}</span>
+                                    
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium tracking-wider ${elemCls}`}>{region.element}</span>
+                                    
+                                    {isActive && (
+                                        <div className="absolute -top-1.5 -right-1.5">
+                                            <span className="relative flex h-4 w-4">
+                                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-slate-900"></span>
+                                            </span>
+                                        </div>
+                                    )}
                                 </button>
                             );
                         })}
                     </div>
                 </div>
 
-                {/* Equipment Preview (Simple) */}
+               {/* Equipment Preview (Simple) */}
                 <div className="grid grid-cols-2 gap-2 mt-4 text-xs opacity-80">
                    <div className="bg-slate-900 p-2 rounded-lg border border-slate-800 flex items-center justify-between">
                        <span className="text-slate-400">נשק:</span>
-                       <span className={p.meleeWeapon?.rarity.colorClass || 'text-slate-500'}>{p.meleeWeapon?.name || 'אין פריט'}</span>
+                       <span className={p.meleeWeapon?.rarity?.colorClass || 'text-slate-500'}>{p.meleeWeapon?.name || 'אין פריט'}</span>
                    </div>
                    <div className="bg-slate-900 p-2 rounded-lg border border-slate-800 flex items-center justify-between">
                        <span className="text-slate-400">שריון:</span>
-                       <span className={p.armor?.rarity.colorClass || 'text-slate-500'}>{p.armor?.name || 'אין פריט'}</span>
+                       <span className={p.armor?.rarity?.colorClass || 'text-slate-500'}>{p.armor?.name || 'אין פריט'}</span>
                    </div>
                 </div>
 
                 <div className="text-center mt-6">
-                     <button onClick={() => dispatch({ type: 'RESET_GAME' })} className="text-slate-600 text-xs hover:text-rose-400 transition-colors">
+                     <button onClick={() => { localStorage.removeItem('rpg_quest_save_v3'); dispatch({ type: 'RESET_GAME' }); }} className="text-slate-600 text-xs hover:text-rose-400 transition-colors">
                         אפס שמירה ותתחיל מחדש
                     </button>
                 </div>
@@ -183,7 +282,7 @@ const App = () => {
         const isMerchant = eventData.type === 'merchant';
         const isTraveler = eventData.type === 'traveler';
         return (
-            <div className="w-full max-w-2xl mx-auto min-h-screen bg-slate-950 p-6 flex flex-col justify-center items-center text-center">
+            <div className="w-full max-w-2xl mx-auto min-h-screen bg-main-menu p-6 flex flex-col justify-center items-center text-center">
                 <div className={`w-32 h-32 md:w-48 md:h-48 rounded-full flex items-center justify-center mb-8 shadow-2xl ${isBad ? 'bg-rose-950/50 shadow-rose-900/50' : 'bg-emerald-950/50 shadow-emerald-900/50'}`}>
                     {eventData.icon === 'skull' && <Skull size={64} className="text-rose-500" />}
                     {eventData.icon === 'alert' && <AlertTriangle size={64} className="text-orange-500" />}
@@ -262,81 +361,255 @@ const App = () => {
     // Render Shop Phase
     if (phase === 'shop') {
         return (
-            <div className="w-full max-w-4xl mx-auto h-[100dvh] overflow-hidden bg-slate-950 p-6 md:p-8 flex flex-col pt-12">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold flex items-center gap-2 text-slate-100">
-                        <Store className="text-emerald-400" /> חנות ציוד
+            <div className="w-full max-w-4xl mx-auto h-[100dvh] overflow-hidden bg-shop p-6 md:p-8 flex flex-col pt-12 animate-in fade-in duration-500">
+                <div className="flex justify-between items-center mb-8 relative z-10">
+                    <h2 className="text-2xl font-semibold text-slate-200 flex items-center gap-2.5">
+                        <Store className="text-emerald-400/80" size={22} /> חנות ציוד
                     </h2>
-                    <div className="bg-slate-900 px-4 py-2 rounded-full flex items-center gap-2 border border-yellow-900/30">
-                        <Coins className="text-yellow-400" size={18} />
-                        <span className="font-bold text-yellow-100">{p.gold}</span>
+                    <div className="flex items-center gap-2 text-amber-400/90">
+                        <Coins size={16} />
+                        <span className="font-medium text-lg">{p.gold.toLocaleString()}</span>
                     </div>
                 </div>
 
                 {/* Potions */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 flex justify-between items-center">
+                <div className="glass-panel p-4 mb-6 flex justify-between items-center rounded-xl">
                     <div className="flex items-center gap-3">
-                        <div className="bg-rose-900/30 p-2 rounded-lg text-rose-400">
-                            <Heart size={24} />
+                        <div className="p-2.5 rounded-lg text-rose-400/80 border border-rose-900/40">
+                            <Heart size={20} />
                         </div>
                         <div>
-                            <div className="font-bold text-slate-200">שיקוי ריפוי</div>
-                            <div className="text-xs text-slate-400">מרפא 40% חיים</div>
+                            <div className="font-medium text-slate-200">שיקוי ריפוי</div>
+                            <div className="text-xs text-slate-500 mt-0.5">מרפא 40% חיים</div>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="text-sm font-medium text-slate-300">יש לך: {p.potions}</div>
+                        <div className="text-sm text-slate-400">יש לך: <span className="text-slate-200">{p.potions}</span></div>
                         <button 
                             onClick={() => { audioSystem.sfxGold(); dispatch({ type: 'BUY_ITEM', payload: { type: 'potion', item: { cost: 15 } } }); }}
                             disabled={p.gold < 15}
-                            className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 ${p.gold >= 15 ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}
+                            className={`px-4 py-1.5 rounded-lg font-medium text-sm flex items-center gap-1.5 transition-all active:scale-[0.98] ${p.gold >= 15 ? 'bg-emerald-800/60 hover:bg-emerald-700/60 text-emerald-200 border border-emerald-700/50' : 'bg-slate-800/60 text-slate-500 border border-slate-700/50 grayscale'}`}
                         >
-                            15 <Coins size={14} />
+                            15 <Coins size={13} />
                         </button>
                     </div>
                 </div>
 
                 <div className="mb-6">
-                    <h3 className="text-lg font-bold mb-3 text-slate-400 border-b border-slate-800 pb-2">הציוד הנוכחי שלך:</h3>
-                    <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2 snap-x" dir="rtl">
-                        <div className="w-44 flex-shrink-0 snap-center"><ItemCard item={p.meleeWeapon} isEquipped={true} /></div>
-                        <div className="w-44 flex-shrink-0 snap-center"><ItemCard item={p.magicWeapon} isEquipped={true} /></div>
-                        <div className="w-44 flex-shrink-0 snap-center"><ItemCard item={p.armor} isEquipped={true} /></div>
-                        {p.ring1 && <div className="w-44 flex-shrink-0 snap-center"><ItemCard item={p.ring1} isEquipped={true} /></div>}
-                        {p.ring2 && <div className="w-44 flex-shrink-0 snap-center"><ItemCard item={p.ring2} isEquipped={true} /></div>}
+                    <h3 className="text-xs font-medium tracking-widest text-slate-500 uppercase mb-3 flex items-center gap-2">
+                        <Shield size={12} /> הציוד הנוכחי שלך
+                    </h3>
+                    <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4 snap-x relative" dir="rtl">
+                        <div className="w-52 flex-shrink-0 snap-center"><ItemCard item={p.meleeWeapon} isEquipped={true} /></div>
+                        <div className="w-52 flex-shrink-0 snap-center"><ItemCard item={p.magicWeapon} isEquipped={true} /></div>
+                        <div className="w-52 flex-shrink-0 snap-center"><ItemCard item={p.armor} isEquipped={true} /></div>
+                        {p.ring1 && <div className="w-52 flex-shrink-0 snap-center"><ItemCard item={p.ring1} isEquipped={true} /></div>}
+                        {p.ring2 && <div className="w-52 flex-shrink-0 snap-center"><ItemCard item={p.ring2} isEquipped={true} /></div>}
                     </div>
                 </div>
 
-                <h3 className="text-lg font-bold mb-4 text-slate-400 border-b border-slate-800 pb-2">ציוד למכירה לרמתך ({p.level}):</h3>
+                <h3 className="text-xs font-medium tracking-widest text-slate-500 uppercase mb-3 relative z-10 flex items-center gap-2">
+                    <Sparkles size={12} /> ציוד למכירה <span className="text-slate-600 normal-case tracking-normal">רמה {p.level}</span>:
+                </h3>
                 
-                <div className="flex-1 min-h-0 relative">
-                    <div className="absolute inset-0 overflow-y-auto hide-scrollbar pb-32">
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex-1 min-h-0 relative z-10">
+                    <div className="absolute inset-0 overflow-y-auto hide-scrollbar pb-32 pt-2">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
                             {Object.entries(shopInventory).map(([type, item]) => item && (
                                 <ItemCard 
                                     key={type} 
                                     item={item} 
                                     onAction={(t, i) => { audioSystem.sfxGold(); dispatch({ type: 'BUY_ITEM', payload: { type: t, item: i } }); }}
-                                    actionText={<>{item.cost} <Coins size={14}/></>}
+                                    actionText={<span className="font-outfit text-base flex items-center gap-1.5">{item.cost.toLocaleString()} <Coins size={16}/></span>}
                                     disabled={p.gold < item.cost}
-                                    actionButtonClass={p.gold >= item.cost ? 'bg-yellow-600 hover:bg-yellow-500 text-white' : 'bg-slate-800 text-slate-500 border border-slate-700'}
+                                    actionButtonClass={p.gold >= item.cost ? 'bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white shadow-lg border border-amber-500/50' : 'bg-slate-800/80 text-slate-500 border border-slate-700 grayscale'}
                                 />
                             ))}
-                            {!Object.values(shopInventory).some(i => i) && (
-                                <div className="col-span-2 text-center text-slate-500 py-8 bg-slate-900/50 rounded-xl border border-dashed border-slate-800">
-                                    קנית הכל! ציוד חדש יגיע כשתעלה רמה.
-                                </div>
-                            )}
                         </div>
+                        {!Object.values(shopInventory).some(i => i) && (
+                            <div className="w-full text-center text-slate-400 py-12 glass-panel rounded-3xl mt-4 border-dashed border-slate-700 flex flex-col items-center justify-center gap-3">
+                                <Store size={48} className="text-slate-600 mb-2 opacity-50" />
+                                <span className="font-outfit text-lg tracking-wide">קנית הכל!</span>
+                                <span className="text-sm">ציוד חדש יגיע כשתעלה רמה.</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                <div className="mt-auto pt-4 absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent">
-                    <button 
+                <div className="mt-auto pt-4 absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent z-20 pointer-events-none">
+                    <button
                         onClick={() => { playClick(); dispatch({ type: 'LEAVE_SHOP' }); }}
-                        className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl border border-slate-700 transition-colors shadow-lg"
+                        className="w-full max-w-sm mx-auto block glass-button text-slate-400 font-medium py-3 rounded-xl border border-white/5 transition-all pointer-events-auto active:scale-[0.98]"
                     >
-                        חזור לעיר
+                        חזור
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Render Camp Phase
+    if (phase === 'camp') {
+        const tentLvl = state.camp.tentLevel;
+        const bsLvl = state.camp.blacksmithLevel;
+        const nextTent = campUpgrades.tent.find(t => t.level === tentLvl + 1);
+        const nextBs = campUpgrades.blacksmith.find(b => b.level === bsLvl + 1);
+        const currentTent = campUpgrades.tent.find(t => t.level === tentLvl);
+        const currentBs = campUpgrades.blacksmith.find(b => b.level === bsLvl);
+
+        return (
+            <div className="w-full max-w-4xl mx-auto h-[100dvh] overflow-hidden bg-camp p-5 md:p-8 flex flex-col pt-10 animate-in fade-in duration-500">
+                <div className="flex justify-between items-center mb-6 relative z-10">
+                    <h2 className="text-2xl font-semibold text-slate-200 flex items-center gap-2.5">
+                        <Tent className="text-amber-400/80" size={22} /> המחנה
+                    </h2>
+                    <div className="flex items-center gap-2 text-amber-400/90">
+                        <Coins size={15} />
+                        <span className="font-medium">{p.gold.toLocaleString()}</span>
+                    </div>
+                </div>
+
+                <div className="flex-1 min-h-0 relative">
+                    <div className="absolute inset-0 overflow-y-auto hide-scrollbar pb-32 space-y-4">
+                        
+                        {/* Tent */}
+                        <div className="glass-panel border-dashed border-emerald-900/40 rounded-3xl p-5 relative overflow-hidden group">
+                            <div className="flex justify-between items-center mb-3 relative z-10">
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-gradient-to-br from-emerald-900/50 to-teal-900/50 p-3 rounded-2xl text-emerald-400 border border-emerald-800/50 shadow-inner">
+                                        <Heart size={28} className="drop-shadow-md group-hover:scale-110 transition-transform" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-slate-100 text-xl font-outfit tracking-wide flex items-center gap-2">אוהל מרפא <span className="bg-emerald-900/50 text-emerald-300 text-[11px] px-2 py-0.5 rounded-md border border-emerald-700/50">רמה {tentLvl}</span></div>
+                                        <div className="text-xs font-medium text-emerald-400/80 mt-1">שיקויים מרפאים {Math.floor(currentTent.healPercent * 100)}% חיים</div>
+                                    </div>
+                                </div>
+                                {nextTent ? (
+                                    <button 
+                                        onClick={() => { audioSystem.sfxGold(); dispatch({ type: 'UPGRADE_TENT' }); }}
+                                        disabled={p.gold < nextTent.cost}
+                                        className={`px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg transition-all active:scale-95 ${p.gold >= nextTent.cost ? 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white border border-amber-500/50' : 'bg-slate-800 text-slate-500 border border-slate-700 grayscale'}`}
+                                    >
+                                        שדרג <ArrowUp size={16}/> <span className="font-outfit text-base">{nextTent.cost.toLocaleString()}</span> <Coins size={16} />
+                                    </button>
+                                ) : (
+                                    <span className="text-xs font-bold text-emerald-300 bg-emerald-950/50 border border-emerald-800/50 px-3 py-1.5 rounded-xl shadow-inner">רמה מקסימלית</span>
+                                )}
+                            </div>
+                            {nextTent && <div className="text-xs text-slate-500 mt-2">שדרוג יעלה את הריפוי ל-<span className="text-emerald-400 font-bold">{Math.floor(nextTent.healPercent * 100)}%</span></div>}
+                            
+                            {/* Sleep Button (Only at night) */}
+                            {!state.timeSystem.isDay && (
+                                <button 
+                                    onClick={() => { audioSystem.sfxHeal(); dispatch({ type: 'SLEEP_CAMP' }); }}
+                                    className="w-full mt-5 bg-gradient-to-r from-indigo-950/60 to-purple-950/60 hover:from-indigo-900/70 hover:to-purple-900/70 text-indigo-300 font-bold font-outfit tracking-wide py-3.5 rounded-2xl border border-indigo-700/50 flex items-center justify-center gap-2 transition-all shadow-inner active:scale-95 group"
+                                >
+                                    <Moon size={20} className="group-hover:-rotate-12 transition-transform drop-shadow-md text-indigo-400" /> <span className="group-hover:text-white transition-colors">לישון עד הבוקר (מרפא הכל)</span>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Blacksmith */}
+                        <div className="glass-panel border-dashed border-orange-900/40 rounded-3xl p-5 relative overflow-hidden group">
+                            <div className="flex justify-between items-center mb-5 relative z-10">
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-gradient-to-br from-orange-900/50 to-red-900/50 p-3 rounded-2xl text-orange-400 border border-orange-800/50 shadow-inner">
+                                        <Hammer size={28} className="drop-shadow-md group-hover:-rotate-12 transition-transform" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-slate-100 text-xl font-outfit tracking-wide flex items-center gap-2">שולחן נפח <span className="bg-orange-900/50 text-orange-300 text-[11px] px-2 py-0.5 rounded-md border border-orange-700/50">רמה {bsLvl}</span></div>
+                                        <div className="text-xs font-medium text-orange-400/80 mt-1">הוזלה של {Math.floor(currentBs.discount * 100)}% בשדרוג פריטים</div>
+                                    </div>
+                                </div>
+                                {nextBs ? (
+                                    <button 
+                                        onClick={() => { audioSystem.sfxGold(); dispatch({ type: 'UPGRADE_BLACKSMITH' }); }}
+                                        disabled={p.gold < nextBs.cost}
+                                        className={`px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg transition-all active:scale-95 ${p.gold >= nextBs.cost ? 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white border border-amber-500/50' : 'bg-slate-800 text-slate-500 border border-slate-700 grayscale'}`}
+                                    >
+                                        שדרג <ArrowUp size={16}/> <span className="font-outfit text-base">{nextBs.cost.toLocaleString()}</span> <Coins size={16} />
+                                    </button>
+                                ) : (
+                                    <span className="text-xs font-bold text-orange-300 bg-orange-950/50 border border-orange-800/50 px-3 py-1.5 rounded-xl shadow-inner">רמה מקסימלית</span>
+                                )}
+                            </div>
+
+                            <div className="bg-black/30 backdrop-blur-md rounded-2xl p-4 border border-white/5 shadow-inner">
+                                <h4 className="text-sm font-bold font-outfit tracking-wide text-slate-400 mb-3 flex items-center gap-2"><Sparkles size={16} className="text-slate-500"/> שדרוג נשק, שריון וקמעות:</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    {['melee', 'magic', 'armor', 'ring1', 'ring2'].map(type => {
+                                        let item = null;
+                                        if (type === 'melee') item = p.meleeWeapon;
+                                        if (type === 'magic') item = p.magicWeapon;
+                                        if (type === 'armor') item = p.armor;
+                                        if (type === 'ring1') item = p.ring1;
+                                        if (type === 'ring2') item = p.ring2;
+                                        if (!item) return null;
+                                        
+                                        const upgCost = getUpgradeCost(item, currentBs.discount);
+                                        return (
+                                            <div key={type} className="bg-slate-900/40 border border-slate-800/60 rounded-xl p-2.5 text-center text-xs relative flex flex-col items-center shadow-sm">
+                                                <div className="mb-3 w-full"><ItemCard item={item} hideAction={true} /></div>
+                                                <button
+                                                    onClick={() => { audioSystem.sfxEquip(); dispatch({ type: 'UPGRADE_ITEM', payload: { type } }); }}
+                                                    disabled={p.gold < upgCost}
+                                                    className={`w-full py-2.5 rounded-lg text-xs font-bold font-outfit tracking-wide mt-auto flex justify-center items-center gap-1.5 transition-all shadow-md active:scale-95 ${p.gold >= upgCost ? 'bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/50 text-indigo-300 hover:from-indigo-600/50 hover:to-purple-600/50 hover:text-white' : 'bg-slate-800/50 border border-slate-700/50 text-slate-500 grayscale'}`}
+                                                >
+                                                    לשדרג ({upgCost.toLocaleString()} <Coins size={12}/>)
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Stash */}
+                        <div className="glass-panel border-dashed border-purple-900/40 rounded-3xl p-5 group relative overflow-hidden">
+                            <div className="flex items-center gap-4 mb-5 relative z-10">
+                                <div className="bg-gradient-to-br from-purple-900/50 to-fuchsia-900/50 p-3 rounded-2xl text-purple-400 border border-purple-800/50 shadow-inner">
+                                    <Box size={28} className="drop-shadow-md group-hover:scale-110 transition-transform" />
+                                </div>
+                                <div className="font-bold text-slate-100 text-xl font-outfit tracking-wide flex items-center gap-2">תיבת אחסון <span className="bg-purple-900/50 text-purple-300 text-[12px] px-2 py-0.5 rounded-md border border-purple-700/50 font-sans">{state.camp.stash.length} מופקדים</span></div>
+                            </div>
+                            
+                            {state.camp.stash.length === 0 ? (
+                                <div className="text-center text-slate-400 py-8 border border-dashed border-white/10 rounded-2xl bg-black/20 text-sm backdrop-blur-md shadow-inner flex flex-col justify-center items-center gap-2 max-w-sm mx-auto">
+                                   <Box size={32} className="text-slate-600 mb-1 opacity-50"/>
+                                    התיבה ריקה.<br/>אפשר לאחסן כאן פריטים שמצאת בדרך במקום למכור אותם מיד.
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
+                                    {state.camp.stash.map((item, idx) => (
+                                        <div key={idx} className="relative group/item">
+                                            <div className="absolute inset-0 bg-emerald-500/5 rounded-2xl scale-105 opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none"></div>
+                                            <ItemCard 
+                                                item={item} 
+                                                onAction={() => dispatch({ type: 'EQUIP_FROM_STASH', payload: { itemIndex: idx } })}
+                                                actionText={<span className="font-outfit text-sm">הצטייד</span>}
+                                                actionButtonClass="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md border border-emerald-500/50 active:scale-95 mb-3"
+                                            />
+                                            <button 
+                                                onClick={() => { audioSystem.sfxGold(); dispatch({ type: 'SELL_FROM_STASH', payload: { itemIndex: idx } }); }}
+                                                className="w-full mt-3 bg-slate-900/60 hover:bg-slate-800 text-slate-400 hover:text-rose-300 font-bold font-outfit tracking-wide py-2.5 rounded-xl border border-slate-700/50 flex justify-center items-center gap-1.5 transition-all outline-none focus:ring-2 focus:ring-rose-500/50"
+                                            >
+                                                <span>מכור ({Math.floor(item.cost * 0.3).toLocaleString()})</span> <Coins size={12}/>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                    </div>
+                </div>
+
+                <div className="mt-auto pt-6 absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent z-20 pointer-events-none">
+                    <button 
+                        onClick={() => { playClick(); dispatch({ type: 'LEAVE_CAMP' }); }}
+                        className="w-full max-w-sm mx-auto block glass-button hover:bg-indigo-900/40 text-indigo-100 hover:text-white font-bold font-outfit tracking-wide py-4 rounded-2xl border border-indigo-500/30 transition-all shadow-xl pointer-events-auto active:scale-95 flex justify-center items-center gap-2 group"
+                    >
+                        חזור להרפתקה <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </button>
                 </div>
             </div>
@@ -346,39 +619,50 @@ const App = () => {
     // Render Loot Phase
     if (phase === 'loot' && lootData) {
         return (
-            <div className="w-full max-w-2xl mx-auto min-h-screen bg-slate-950 p-6 flex flex-col justify-center">
-                <div className="text-center mb-10">
-                    <div className="w-20 h-20 mx-auto bg-yellow-900/30 rounded-full flex items-center justify-center mb-4 border-2 border-yellow-500/50 relative">
-                        <div className="absolute inset-0 bg-yellow-400 animate-pulse rounded-full opacity-20 blur-md"></div>
-                        <Sparkles size={32} className="text-yellow-400 relative z-10" />
+            <div className="w-full max-w-2xl mx-auto min-h-screen bg-main-menu p-6 flex flex-col justify-center animate-in zoom-in-95 duration-500">
+                <div className="text-center mb-10 relative z-10">
+                    <div className="w-24 h-24 mx-auto bg-gradient-to-br from-yellow-900/40 to-amber-900/40 rounded-[2rem] flex items-center justify-center mb-6 border border-yellow-500/30 relative shadow-[0_0_30px_rgba(245,158,11,0.2)] rotate-3">
+                        <div className="absolute inset-0 bg-yellow-400 animate-pulse rounded-[2rem] opacity-20 blur-xl"></div>
+                        <Sparkles size={40} className="text-yellow-400 relative z-10 drop-shadow-md" />
                     </div>
-                    <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500">
+                    <h2 className="text-4xl font-black font-outfit text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 drop-shadow-sm tracking-wide">
                         מצאת שלל!
                     </h2>
                 </div>
 
-                <div className="mb-8">
+                <div className="mb-10 relative z-10">
+                    <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/10 to-transparent blur-3xl -z-10 rounded-full"></div>
                     <ItemCard item={lootData} />
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 relative z-10">
                     <button 
                         onClick={() => { audioSystem.sfxEquip(); dispatch({ type: 'EQUIP_LOOT' }); }}
-                        className="w-full relative overflow-hidden group bg-gradient-to-br from-emerald-600 to-emerald-800 text-white font-bold py-4 rounded-xl border border-emerald-500/50 shadow-lg"
+                        className="w-full max-w-md mx-auto relative overflow-hidden group bg-gradient-to-br from-emerald-600 to-teal-600 text-white font-bold font-outfit tracking-wide py-4.5 rounded-2xl border border-emerald-500/50 shadow-lg active:scale-95 transition-all block"
                     >
                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                        <span className="relative z-10 flex justify-center items-center gap-2">
-                            הצטייד והמשך <ChevronRight size={18} />
+                        <span className="relative z-10 flex justify-center items-center gap-2 text-lg">
+                            הצטייד והמשך <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                         </span>
                     </button>
-                    
-                    <button 
-                        onClick={() => { audioSystem.sfxGold(); dispatch({ type: 'LEAVE_LOOT' }); }}
-                        className="w-full bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold py-4 rounded-xl border border-slate-700 transition-colors flex justify-center items-center gap-2"
-                    >
-                        <Coins size={18} className="text-yellow-500" />
-                        מכור עבור {Math.floor(lootData.cost * 0.3)} זהב
-                    </button>
+
+                    <div className="flex gap-3 max-w-md mx-auto">
+                        <button 
+                            onClick={() => { playClick(); dispatch({ type: 'STASH_ITEM', payload: { from: 'loot', type: lootData.type } }); }}
+                            className="flex-1 glass-button bg-purple-900/40 hover:bg-purple-800/50 text-purple-200 font-bold font-outfit tracking-wide py-4 rounded-xl border border-purple-700/50 transition-all flex justify-center items-center gap-1.5 shadow-md active:scale-95"
+                        >
+                            <Box size={18} />
+                            שלח לאחסון <span className="text-[10px] text-purple-400 border border-purple-800 bg-purple-950 px-1 rounded absolute top-1 left-1 opacity-80">(+5 <Coins size={8} className="inline text-yellow-500"/>)</span>
+                        </button>
+                        
+                        <button 
+                            onClick={() => { audioSystem.sfxGold(); dispatch({ type: 'LEAVE_LOOT' }); }}
+                            className="flex-1 glass-button bg-slate-800/60 hover:bg-slate-700/80 text-slate-300 font-bold font-outfit tracking-wide py-4 rounded-xl border border-slate-700/50 transition-all flex justify-center items-center gap-1.5 shadow-md active:scale-95"
+                        >
+                            <Coins size={18} className="text-yellow-500" />
+                            מכור <span className="opacity-70 font-sans text-sm">({Math.floor(lootData.cost * 0.3)})</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -386,41 +670,44 @@ const App = () => {
 
     // Render Ring Replace Phase
     if (phase === 'ring_replace' && pendingRing) {
+        const isFromStash = state.pendingRingAction === 'stash';
         return (
-            <div className="max-w-md mx-auto min-h-screen bg-slate-950 p-6 flex flex-col justify-center">
-                <h2 className="text-2xl font-bold text-center mb-2 text-slate-100">אין מקום פנוי לטבעות</h2>
-                <p className="text-slate-400 text-center mb-8">בחר איזו טבעת להחליף ב-{pendingRing.name}:</p>
+            <div className="w-full max-w-md mx-auto min-h-screen bg-main-menu p-6 flex flex-col justify-center animate-in fade-in duration-300">
+                <h2 className="text-3xl font-black font-outfit text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 drop-shadow-sm">בחר איזו טבעת להחליף</h2>
+                <p className="text-slate-400 text-center mb-8 text-sm">איזו טבעת תרצה להחליף ב-<span className="font-bold text-slate-200">{pendingRing.name}</span>?</p>
 
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="flex flex-col gap-2">
-                        <div className="text-sm font-bold text-slate-500 text-center">טבעת 1</div>
+                {/* New ring preview */}
+                <div className="mb-8 border border-indigo-500/30 rounded-3xl p-4 bg-indigo-950/20 backdrop-blur-md relative shadow-[0_0_30px_rgba(79,70,229,0.15)] group">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[11px] font-bold text-indigo-200 bg-indigo-900 border border-indigo-700 px-3 py-1 rounded-full shadow-md z-10 whitespace-nowrap">טבעת חדשה</div>
+                    <ItemCard item={pendingRing} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                    <div className="flex flex-col gap-3">
+                        <div className="text-xs font-bold text-slate-400 bg-slate-900/50 border border-slate-800 py-1.5 rounded-lg text-center font-outfit tracking-wide">טבעת 1</div>
                         <ItemCard 
                             item={p.ring1} 
                             onAction={() => dispatch({ type: 'CONFIRM_REPLACE_RING', payload: { slot: 1 } })}
-                            actionText="החלף"
-                            actionButtonClass="bg-rose-600 hover:bg-rose-500 text-white"
+                            actionText={<span className="font-outfit tracking-wide">החלף בזו</span>}
+                            actionButtonClass="bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white shadow-md active:scale-95 border border-rose-500/50"
                         />
                     </div>
-                    <div className="flex flex-col gap-2">
-                        <div className="text-sm font-bold text-slate-500 text-center">טבעת 2</div>
+                    <div className="flex flex-col gap-3">
+                        <div className="text-xs font-bold text-slate-400 bg-slate-900/50 border border-slate-800 py-1.5 rounded-lg text-center font-outfit tracking-wide">טבעת 2</div>
                         <ItemCard 
                             item={p.ring2} 
                             onAction={() => dispatch({ type: 'CONFIRM_REPLACE_RING', payload: { slot: 2 } })}
-                            actionText="החלף"
-                            actionButtonClass="bg-rose-600 hover:bg-rose-500 text-white"
+                            actionText={<span className="font-outfit tracking-wide">החלף בזו</span>}
+                            actionButtonClass="bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white shadow-md active:scale-95 border border-rose-500/50"
                         />
                     </div>
-                </div>
-
-                <div className="mt-auto">
-                    <ItemCard item={pendingRing} />
                 </div>
 
                 <button 
                     onClick={() => dispatch({ type: 'CANCEL_REPLACE_RING' })}
-                    className="mt-6 w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl border border-slate-700"
+                    className="w-full glass-button hover:bg-slate-800 text-slate-300 font-bold font-outfit tracking-wide py-4.5 rounded-2xl border border-slate-700/50 transition-all shadow-xl active:scale-95"
                 >
-                    בטל (הטבעת תימכר)
+                    {isFromStash ? 'ביטול (חזור לאחסון)' : 'בטל (הטבעת תימכר)'}
                 </button>
             </div>
         );
@@ -434,10 +721,12 @@ const App = () => {
         const hasTakenDamage = state.enemyAttacking && state.turn === 'enemy';
 
         return (
-            <div className={`w-full max-w-4xl mx-auto min-h-screen bg-slate-950 flex flex-col relative overflow-hidden ${hasTakenDamage ? 'animate-intense-shake' : ''}`}>
-                {/* Background visual elements */}
-                <div className={`absolute inset-0 pointer-events-none transition-colors duration-200 ${hasTakenDamage ? 'bg-red-900/30 animate-flash-red' : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black z-0'}`}></div>
-                {state.lastHitCrit && <div className="absolute inset-0 bg-yellow-900/10 pointer-events-none z-0"></div>}
+            <div className={`w-full max-w-4xl mx-auto min-h-screen bg-battle flex flex-col relative overflow-hidden ${hasTakenDamage ? 'animate-intense-shake' : ''}`}>
+                {/* Static background gradient - never changes, no flash */}
+                <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_rgba(30,20,40,0.5),_transparent)] z-0"></div>
+                {/* Damage Flash - independent overlay, fades in/out smoothly */}
+                <div className={`absolute inset-0 pointer-events-none z-0 transition-opacity duration-150 ${hasTakenDamage ? 'opacity-100 bg-red-900/25' : 'opacity-0'}`}></div>
+                {state.lastHitCrit && <div className="absolute inset-0 bg-yellow-900/10 pointer-events-none z-0 transition-opacity duration-300"></div>}
 
                 {/* Floating Texts container relative positioning area */}
                 <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden flex justify-center items-center">
@@ -446,25 +735,39 @@ const App = () => {
                     ))}
                 </div>
 
+                {/* Active Buffs (Battle View) */}
+                {state.activeBuffs && state.activeBuffs.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3 justify-center w-full max-w-sm mx-auto mt-4 relative z-10">
+                        {state.activeBuffs.map((buff, i) => (
+                            <div key={i} className="bg-indigo-950/80 text-indigo-200 px-3 py-1.5 rounded-full text-[11px] font-bold font-outfit border border-indigo-700/50 flex items-center gap-1.5 shadow-lg backdrop-blur-md">
+                                <span className="flex items-center text-indigo-400 opacity-90"><RenderDynamicIcon name={buff.icon || 'Star'} size={14} /></span> 
+                                <span className="tracking-wide text-indigo-100">{buff.name}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
                 {/* Enemy Area (Top half) */}
-                <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10 border-b border-slate-800/50 bg-black/20">
+                <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10 border-b border-white/5 bg-gradient-to-b from-black/40 to-transparent">
                     {ne && (
                         <div className={`text-center transition-all w-full max-w-xs mx-auto ${state.enemyAttacking ? 'animate-enemy-attack' : ''} ${state.turn === 'player' && !isPlayerTurn ? 'animate-shake' : ''}`}>
-                            <div className="flex justify-center mb-4">
-                                <div className="text-8xl filter drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] bg-slate-900/50 p-6 rounded-full border border-slate-700/50 relative group">
-                                    <div className="absolute -inset-2 bg-gradient-to-r from-red-500/0 via-red-500/20 to-red-500/0 opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-1000"></div>
-                                    <span className="relative z-10 inline-block group-hover:scale-110 transition-transform duration-300">{ne.emoji}</span>
-                                    {ne.isBoss && <div className="absolute -top-4 -right-4 bg-rose-600 text-xs px-2 py-1 rounded-full text-white font-bold border border-rose-400 rotate-12 shadow-lg">בוס!</div>}
-                                    {ne.stunTurns > 0 && <div className="absolute top-0 -left-4 animate-spin text-2xl filter drop-shadow-md">💫</div>}
+                            <div className="flex justify-center mb-6">
+                                <div className="text-9xl filter drop-shadow-[0_20px_20px_rgba(0,0,0,0.8)] relative group">
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-rose-500/20 to-purple-500/20 blur-2xl rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
+                                    <span className="relative z-10 inline-block group-hover:scale-105 transition-transform duration-500 text-slate-200 will-change-transform drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
+                                        <RenderDynamicIcon name={ne.icon || 'Skull'} size={110} />
+                                    </span>
+                                    {ne.isBoss && <div className="absolute -top-6 -right-6 bg-gradient-to-br from-rose-900 to-rose-950 text-xs px-3 py-1.5 rounded-sm text-rose-300 font-bold font-cinzel tracking-wider border border-rose-500/50 shadow-[0_0_20px_rgba(225,29,72,0.4)] animate-pulse-slow">בוס נבחר</div>}
+                                    {ne.stunTurns > 0 && <div className="absolute top-0 -left-6 max-w-none animate-spin filter drop-shadow-lg text-amber-500"><LucideIcons.Loader size={32} /></div>}
                                 </div>
                             </div>
                             
-                            <div className="bg-slate-900/90 backdrop-blur border border-slate-700 p-4 rounded-2xl shadow-2xl relative">
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-800 text-xs px-3 py-1 rounded-full border border-slate-600 font-medium text-slate-300 whitespace-nowrap">
-                                    {ne.name} • רמה {ne.level}
+                            <div className="glass-panel p-5 rounded-3xl relative mt-4">
+                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-slate-950 text-sm px-4 py-1.5 rounded-xl border border-slate-700 font-bold font-outfit text-slate-200 whitespace-nowrap shadow-lg flex items-center gap-2">
+                                    <span className="text-amber-400">רמה {ne.level}</span> <span className="text-slate-600">|</span> {ne.name}
                                 </div>
-                                <div className="mt-2">
-                                    <ProgressBar current={ne.hp} max={ne.maxHp} colorClass="bg-rose-500" label="חיים" />
+                                <div className="mt-4">
+                                    <ProgressBar current={ne.hp} max={ne.maxHp} colorClass="bg-gradient-to-r from-rose-600 to-rose-400 shadow-[0_0_15px_rgba(225,29,72,0.3)]" label="חיים" />
                                 </div>
                             </div>
                         </div>
@@ -472,111 +775,204 @@ const App = () => {
                 </div>
 
                 {/* Player Area (Middle) */}
-                <div className="p-4 bg-slate-900 border-t border-slate-800 relative z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.3)]">
-                    <div className="flex items-center gap-3 mb-4">
-                       <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center text-slate-300 font-bold border border-slate-700">ר{p.level}</div>
-                       <div className="flex-1">
-                           <ProgressBar current={p.hp} max={playerTotalMaxHp} colorClass="bg-emerald-500" label="חיים" />
-                           <ProgressBar current={p.mp} max={playerTotalMaxMp} colorClass="bg-blue-500" label="מאנה" />
+                <div className="p-5 bg-slate-950/80 backdrop-blur-xl border-t border-white/10 relative z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.5)]">
+                    <div className="flex items-center gap-4 mb-5 max-w-md mx-auto">
+                       <div className="w-14 h-14 bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl flex items-center justify-center text-indigo-300 font-black font-outfit text-xl border-2 border-indigo-700/50 shadow-inner">ר{p.level}</div>
+                       <div className="flex-1 space-y-3 mt-1.5">
+                           <ProgressBar current={p.hp} max={playerTotalMaxHp} colorClass="bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]" label="חיים" />
+                           <ProgressBar current={p.mp} max={playerTotalMaxMp} colorClass="bg-gradient-to-r from-blue-500 to-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.3)]" label="מאנה" />
                        </div>
                     </div>
 
                     {/* Combat Actions - 2x2 grid + skills */}
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-4 gap-3 max-w-md mx-auto">
                         <button 
                             onClick={() => handleAction('attack')}
                             disabled={!isPlayerTurn}
-                            className={`flex flex-col items-center justify-center py-3 rounded-xl border transition-all ${isPlayerTurn ? 'bg-rose-950/40 border-rose-800 hover:bg-rose-900/60 hover:border-rose-600 text-rose-300 shadow-inner' : 'bg-slate-900 border-slate-800 text-slate-600 opacity-50'}`}
+                            className={`flex flex-col items-center justify-center py-4 rounded-2xl border transition-all duration-300 relative overflow-hidden group ${isPlayerTurn ? 'bg-rose-950/40 border-rose-800/50 hover:bg-rose-900/60 hover:border-rose-500 text-rose-300 shadow-inner hover:shadow-[0_0_15px_rgba(225,29,72,0.2)] active:scale-95' : 'bg-slate-900/50 border-slate-800/50 text-slate-600 opacity-50 grayscale'}`}
                         >
-                            <Sword size={22} className="mb-1" />
-                            <span className="text-[10px] font-bold">התקפה</span>
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <Sword size={26} className="mb-2 drop-shadow-md group-hover:scale-110 transition-transform" />
+                            <span className="text-xs font-bold font-outfit tracking-wide">התקפה</span>
                         </button>
                         
                         <button 
                             onClick={() => handleAction('magic')}
                             disabled={!isPlayerTurn || p.mp < 15}
-                            className={`flex flex-col items-center justify-center py-3 rounded-xl border transition-all ${!isPlayerTurn ? 'bg-slate-900 border-slate-800 text-slate-600 opacity-50' : p.mp >= 15 ? 'bg-blue-950/40 border-blue-800 hover:bg-blue-900/60 hover:border-blue-600 text-blue-300 shadow-inner' : 'bg-slate-900 border-slate-800 text-slate-500 opacity-50'}`}
+                            className={`flex flex-col items-center justify-center py-4 rounded-2xl border transition-all duration-300 relative overflow-hidden group ${!isPlayerTurn ? 'bg-slate-900/50 border-slate-800/50 text-slate-600 opacity-50 grayscale' : p.mp >= 15 ? 'bg-blue-950/40 border-blue-800/50 hover:bg-blue-900/60 hover:border-blue-500 text-blue-300 shadow-inner hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] active:scale-95' : 'bg-slate-900/50 border-slate-800/50 text-slate-500 opacity-50 grayscale'}`}
                         >
-                            <Zap size={22} className="mb-1" />
-                            <span className="text-[10px] font-bold">קסם (15)</span>
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <Zap size={26} className="mb-2 drop-shadow-md group-hover:scale-110 transition-transform" />
+                            <span className="text-xs font-bold font-outfit tracking-wide">קסם <span className="opacity-70">(15)</span></span>
                         </button>
 
                         <button 
                             onClick={() => handleAction('slam')}
                             disabled={!isPlayerTurn || p.slamCooldown > 0}
-                            className={`flex flex-col items-center justify-center py-3 rounded-xl border transition-all relative overflow-hidden ${!isPlayerTurn ? 'bg-slate-900 border-slate-800 text-slate-600 opacity-50' : p.slamCooldown === 0 ? 'bg-orange-950/40 border-orange-800 hover:bg-orange-900/60 hover:border-orange-600 text-orange-400 shadow-inner' : 'bg-slate-900 border-slate-800 text-slate-500 opacity-50'}`}
+                            className={`flex flex-col items-center justify-center py-4 rounded-2xl border transition-all duration-300 relative overflow-hidden group ${!isPlayerTurn ? 'bg-slate-900/50 border-slate-800/50 text-slate-600 opacity-50 grayscale' : p.slamCooldown === 0 ? 'bg-orange-950/40 border-orange-800/50 hover:bg-orange-900/60 hover:border-orange-500 text-orange-400 shadow-inner hover:shadow-[0_0_15px_rgba(249,115,22,0.2)] active:scale-95' : 'bg-slate-900/50 border-slate-800/50 text-slate-600 opacity-60 grayscale'}`}
                         >
-                            {p.slamCooldown > 0 && <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-xl font-black">{p.slamCooldown}</div>}
-                            <Target size={22} className="mb-1" />
-                            <span className="text-[10px] font-bold">מחץ</span>
+                            {p.slamCooldown > 0 && <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px] flex items-center justify-center text-3xl font-black font-outfit text-orange-500">{p.slamCooldown}</div>}
+                            <Target size={26} className={`mb-2 drop-shadow-md ${p.slamCooldown === 0 ? 'group-hover:scale-110 transition-transform' : ''}`} />
+                            <span className="text-xs font-bold font-outfit tracking-wide">מחץ</span>
                         </button>
 
                         <button 
                             onClick={() => handleAction('burst')}
                             disabled={!isPlayerTurn || p.burstCooldown > 0 || p.mp < 30}
-                            className={`flex flex-col items-center justify-center py-3 rounded-xl border transition-all relative overflow-hidden ${!isPlayerTurn || (p.burstCooldown > 0 || p.mp < 30) ? 'bg-slate-900 border-slate-800 text-slate-500 opacity-50' : 'bg-purple-950/40 border-purple-800 hover:bg-purple-900/60 hover:border-purple-600 text-purple-300 shadow-inner'}`}
+                            className={`flex flex-col items-center justify-center py-4 rounded-2xl border transition-all duration-300 relative overflow-hidden group ${!isPlayerTurn || (p.burstCooldown > 0 || p.mp < 30) ? 'bg-slate-900/50 border-slate-800/50 text-slate-500 opacity-60 grayscale' : 'bg-purple-950/40 border-purple-800/50 hover:bg-purple-900/60 hover:border-purple-500 text-purple-300 shadow-inner hover:shadow-[0_0_15px_rgba(168,85,247,0.2)] active:scale-95'}`}
                         >
-                            {p.burstCooldown > 0 && <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-xl font-black">{p.burstCooldown}</div>}
-                            <Sparkles size={22} className="mb-1" />
-                            <span className="text-[10px] font-bold">פרץ (30)</span>
+                            {p.burstCooldown > 0 && <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px] flex items-center justify-center text-3xl font-black font-outfit text-purple-500">{p.burstCooldown}</div>}
+                            <Sparkles size={26} className={`mb-2 drop-shadow-md ${p.burstCooldown === 0 ? 'group-hover:scale-110 transition-transform' : ''}`} />
+                            <span className="text-xs font-bold font-outfit tracking-wide">פרץ <span className="opacity-70">(30)</span></span>
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="grid grid-cols-2 gap-3 mt-3 max-w-md mx-auto">
                         <button 
                             onClick={() => handleAction('defend')}
                             disabled={!isPlayerTurn}
-                            className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${isPlayerTurn ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-slate-500 text-slate-300 shadow-inner' : 'bg-slate-900 border-slate-800 text-slate-600 opacity-50'}`}
+                            className={`flex items-center justify-center gap-2 py-3.5 rounded-2xl border transition-all duration-300 group ${isPlayerTurn ? 'bg-slate-800/60 backdrop-blur-sm border-slate-700 hover:bg-slate-700/80 hover:border-slate-500 text-slate-300 shadow-inner active:scale-95' : 'bg-slate-900/50 border-slate-800/50 text-slate-600 opacity-50'}`}
                         >
-                            <Shield size={20} />
-                            <span className="text-[11px] font-bold">הגנה</span>
+                            <Shield size={22} className="group-hover:text-white transition-colors" />
+                            <span className="text-sm font-bold font-outfit tracking-wide group-hover:text-white transition-colors">הגנה</span>
                         </button>
 
                         <button 
                             onClick={() => { audioSystem.sfxHeal(); dispatch({ type: 'HEAL_IN_BATTLE' }); }}
                             disabled={!isPlayerTurn || p.potions <= 0 || p.hp >= playerTotalMaxHp}
-                            className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all font-bold text-sm ${(!isPlayerTurn || p.potions <= 0 || p.hp >= playerTotalMaxHp) ? 'bg-slate-900 border-slate-800 text-slate-600 opacity-50' : 'bg-emerald-950/50 border-emerald-800 hover:bg-emerald-900/60 hover:border-emerald-600 text-emerald-400 shadow-inner'}`}
+                            className={`flex items-center justify-center gap-2 py-3.5 rounded-2xl border transition-all duration-300 font-bold text-sm tracking-wide group ${(!isPlayerTurn || p.potions <= 0 || p.hp >= playerTotalMaxHp) ? 'bg-slate-900/50 border-slate-800/50 text-slate-600 opacity-50 grayscale' : 'bg-emerald-950/50 backdrop-blur-sm border-emerald-800/60 hover:bg-emerald-900/60 hover:border-emerald-500 text-emerald-400 shadow-inner active:scale-95'}`}
                         >
-                            <Heart size={18} className={p.potions > 0 && p.hp < playerTotalMaxHp ? 'animate-pulse' : ''} />
-                            שתה שיקוי ({p.potions})
+                            <Heart size={20} className={p.potions > 0 && p.hp < playerTotalMaxHp ? 'animate-pulse drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]' : ''} />
+                            <span className="font-outfit">שיקוי <span className="opacity-70">({p.potions})</span></span>
                         </button>
                     </div>
+
+                    {/* Crafted Potions Quick-Use */}
+                    {state.craftedPotions && state.craftedPotions.length > 0 && (
+                        <div className="flex gap-2 overflow-x-auto hide-scrollbar mt-2 pb-1">
+                            {state.craftedPotions.map((potion, i) => (
+                                <button 
+                                    key={potion.uid}
+                                    onClick={() => { audioSystem.sfxEquip(); dispatch({ type: 'USE_CRAFTED_POTION', payload: { idx: i } }); }}
+                                    disabled={!isPlayerTurn}
+                                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[11px] font-bold font-outfit tracking-wide shadow-md ${isPlayerTurn ? 'bg-indigo-950/60 border-indigo-800/60 text-indigo-300 hover:bg-indigo-900/80 hover:text-indigo-200 hover:border-indigo-500 transition-colors' : 'bg-slate-900/80 border-slate-800/80 text-slate-600 opacity-60'}`}
+                                >
+                                    <RenderDynamicIcon name={potion.icon || 'FlaskConical'} size={14} className="opacity-80" /> <span className="mt-0.5">{potion.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                 </div>
 
                 {/* Combat Log (Bottom) */}
-                <div className="h-44 bg-slate-950 border-t border-slate-800/80 p-3 overflow-y-auto hide-scrollbar z-20 scroll-smooth relative pointer-events-auto">
+                <div className="h-44 bg-black/50 backdrop-blur-md border-t border-white/10 p-4 pt-5 overflow-y-auto hide-scrollbar z-20 scroll-smooth relative pointer-events-auto">
                     {/* Tiny gradient to indicate scroll */}
-                    <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-slate-950 to-transparent pointer-events-none sticky z-10"></div>
-                    <div className="space-y-2 flex flex-col-reverse">
+                    <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-black/80 to-transparent pointer-events-none sticky z-10 -mt-2"></div>
+                    <div className="space-y-2.5 flex flex-col-reverse max-w-lg mx-auto pb-4">
                         {log.map((entry) => {
-                            let bgClass = "bg-slate-900/50 border-slate-800/50 text-slate-300";
-                            let icon = <Info size={14} className="text-slate-400 flex-shrink-0" />;
+                            let bgClass = "bg-slate-900/40 border-slate-800/40 text-slate-300 shadow-sm";
+                            let icon = <Info size={16} className="text-slate-400 flex-shrink-0" />;
 
                             if (entry.type === 'attack') {
-                                bgClass = "bg-rose-950/20 border-rose-900/30 text-rose-200";
-                                icon = <Sword size={14} className="text-rose-400 flex-shrink-0" />;
+                                bgClass = "bg-rose-950/30 border-rose-900/40 text-rose-200 shadow-sm";
+                                icon = <Sword size={16} className="text-rose-400 flex-shrink-0" />;
                             } else if (entry.type === 'magic') {
-                                bgClass = "bg-blue-950/20 border-blue-900/30 text-blue-200";
-                                icon = <Zap size={14} className="text-blue-400 flex-shrink-0" />;
+                                bgClass = "bg-blue-950/30 border-blue-900/40 text-blue-200 shadow-sm";
+                                icon = <Zap size={16} className="text-blue-400 flex-shrink-0" />;
                             } else if (entry.type === 'danger') {
-                                bgClass = "bg-red-950/30 border-red-900/50 text-red-200 font-medium";
-                                icon = <AlertTriangle size={14} className="text-red-400 flex-shrink-0" />;
+                                bgClass = "bg-red-950/40 border-red-900/60 text-red-100 font-bold shadow-md shadow-red-900/20";
+                                icon = <AlertTriangle size={16} className="text-red-400 flex-shrink-0 animate-pulse" />;
                             } else if (entry.type === 'success') {
-                                bgClass = "bg-emerald-950/30 border-emerald-900/50 text-emerald-200";
-                                icon = <Sparkles size={14} className="text-emerald-400 flex-shrink-0" />;
+                                bgClass = "bg-emerald-950/40 border-emerald-900/60 text-emerald-100 font-bold shadow-md shadow-emerald-900/20";
+                                icon = <Sparkles size={16} className="text-emerald-400 flex-shrink-0 animate-pulse" />;
                             } else if (entry.type === 'warning') {
-                                bgClass = "bg-yellow-950/20 border-yellow-900/30 text-yellow-200";
-                                icon = <Target size={14} className="text-yellow-500 flex-shrink-0" />;
+                                bgClass = "bg-amber-950/30 border-amber-900/40 text-amber-200 font-medium shadow-sm";
+                                icon = <Target size={16} className="text-amber-500 flex-shrink-0" />;
                             }
 
                             return (
-                                <div key={entry.id} className={`p-2 rounded-lg border text-sm flex items-start gap-2 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300 ${bgClass}`} dir="rtl">
-                                    <div className="mt-0.5">{icon}</div>
-                                    <span className="leading-snug">{entry.text}</span>
+                                <div key={entry.id} className={`p-3 rounded-2xl border text-[13px] flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300 backdrop-blur-sm ${bgClass}`} dir="rtl">
+                                    <div className="mt-0.5 opacity-80">{icon}</div>
+                                    <span className="leading-snug tracking-wide">{entry.text}</span>
                                 </div>
                             );
                         })}
                     </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Render Quests Phase
+    if (phase === 'quests') {
+        return (
+            <div className="w-full max-w-2xl mx-auto min-h-screen bg-map p-6 md:p-8 flex flex-col pt-12 animate-in fade-in duration-500">
+                <div className="flex justify-between items-center mb-10 relative z-10">
+                    <h2 className="text-3xl font-black font-outfit tracking-wide flex items-center gap-3 text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-500 drop-shadow-sm">
+                        <Scroll className="text-indigo-400 drop-shadow-md" size={32} /> משימות יומיות
+                    </h2>
+                    <button onClick={() => dispatch({ type: 'SET_PHASE', payload: 'home' })} className="glass-button bg-slate-900/50 p-3 rounded-full text-slate-400 hover:text-white transition-colors border border-white/5 hover:border-white/20">
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <div className="space-y-4 flex-1 overflow-y-auto hide-scrollbar z-10 px-1 pb-10">
+                    {state.quests.active.map((quest, index) => (
+                        <div key={quest.id} className={`p-6 rounded-3xl border transition-all duration-500 relative overflow-hidden group animate-in slide-in-from-bottom-4`} style={{animationDelay: `${index * 100}ms`}}>
+                            <div className={`absolute inset-0 opacity-20 ${
+                                quest.claimed ? 'bg-slate-900/50' : 
+                                quest.completed ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : 
+                                'bg-gradient-to-br from-indigo-500/10 to-transparent'
+                            }`}></div>
+                            
+                            <div className={`relative z-10 flex flex-col h-full ${quest.claimed ? 'opacity-50 grayscale' : ''}`}>
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h3 className={`text-xl font-bold font-outfit tracking-wide mb-1 ${quest.completed ? 'text-emerald-300' : 'text-slate-100'}`}>{quest.title}</h3>
+                                        <div className="text-xs font-semibold text-indigo-300 bg-indigo-950/40 px-2 py-1 rounded w-fit border border-indigo-900/50 flex items-center gap-1"><Gift size={12}/> פרס: תיבת שלל + זהב</div>
+                                    </div>
+                                    {quest.completed && !quest.claimed && (
+                                        <div className="bg-emerald-500/20 p-2 rounded-full border border-emerald-400/50 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                                            <Sparkles className="text-emerald-400 animate-pulse" size={20} />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mb-2">
+                                    <ProgressBar 
+                                        current={quest.current} 
+                                        max={quest.target} 
+                                        colorClass={quest.completed ? "bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.4)]" : "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-[0_0_10px_rgba(99,102,241,0.3)]"} 
+                                        label={<span className="font-outfit text-xs font-bold">{quest.current} / {quest.target}</span>} 
+                                    />
+                                </div>
+
+                                {quest.completed && !quest.claimed && (
+                                    <button 
+                                        onClick={() => { audioSystem.sfxGold(); dispatch({ type: 'CLAIM_QUEST', payload: { questId: quest.id } }); }}
+                                        className="w-full mt-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold font-outfit tracking-wider py-3.5 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] border border-emerald-400/50 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn"
+                                    >
+                                        <Gem size={18} className="group-hover/btn:scale-125 transition-transform" /> אסוף פרס עכשיו!
+                                    </button>
+                                )}
+                                
+                                {quest.claimed && (
+                                    <div className="mt-5 text-center text-slate-400 text-sm font-bold font-outfit border border-slate-700/50 py-3 rounded-xl bg-slate-900/50 flex items-center justify-center gap-2">
+                                        הושלם <span className="text-emerald-500">✔</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-2 text-center glass-panel border border-white/5 p-4 py-5 rounded-3xl relative z-10 shadow-xl">
+                    <p className="text-slate-400 text-sm leading-relaxed flex flex-col gap-1 items-center">
+                        <Clock size={16} className="text-slate-500 mb-1" />
+                        <span>המשימות מתאפסות כל 5 שעות.</span>
+                        <span className="text-slate-500 text-xs mt-1 max-w-[250px]">השלם אותן כדי לזכות בציוד נדיר וזהב נוסף שיעזור לך להתקדם!</span>
+                    </p>
                 </div>
             </div>
         );

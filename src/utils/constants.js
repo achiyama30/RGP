@@ -1,11 +1,11 @@
-export const SAVE_KEY = 'rpg_quest_save_v2';
+export const SAVE_KEY = 'rpg_quest_save_v3';
 
 export const rarities = [
-    { name: 'חלוד', mult: 0.7, prob: 0.35, colorClass: 'text-slate-500', style: 'border-slate-700 bg-slate-900/50' },
-    { name: 'פשוט', mult: 1.0, prob: 0.40, colorClass: 'text-slate-200', style: 'border-slate-500 bg-slate-800/50' },
-    { name: 'טוב', mult: 1.4, prob: 0.15, colorClass: 'text-emerald-400', style: 'border-emerald-500 bg-emerald-950/30' },
-    { name: 'מצוין', mult: 2.0, prob: 0.08, colorClass: 'text-purple-400', style: 'border-purple-500 bg-purple-950/30' },
-    { name: 'אגדי', mult: 3.0, prob: 0.02, colorClass: 'text-orange-400 font-black', style: 'border-orange-500 bg-orange-950/40 animate-pulse' }
+    { name: 'חלוד', mult: 0.7, prob: 0.35, colorClass: 'text-slate-500', style: 'border-t-slate-700 bg-slate-950/70 border-x-transparent border-b-transparent' },
+    { name: 'פשוט', mult: 1.0, prob: 0.40, colorClass: 'text-slate-300', style: 'border-t-slate-500 bg-slate-900/60 border-x-transparent border-b-transparent' },
+    { name: 'טוב', mult: 1.4, prob: 0.15, colorClass: 'text-emerald-500', style: 'border-t-emerald-700 bg-emerald-950/20 border-x-transparent border-b-transparent' },
+    { name: 'מצוין', mult: 2.0, prob: 0.08, colorClass: 'text-indigo-400', style: 'border-t-indigo-600 bg-indigo-950/20 border-x-transparent border-b-transparent' },
+    { name: 'אגדי', mult: 3.0, prob: 0.02, colorClass: 'text-amber-500 font-bold tracking-wider', style: 'border-t-amber-500 bg-amber-950/30 shadow-[inset_0_10px_20px_rgba(245,158,11,0.05)] border-x-transparent border-b-transparent' }
 ];
 
 export const itemNames = {
@@ -48,3 +48,87 @@ export const regions = [
         monsters: ['זאב שלג', 'לוחם כפור', 'גולם קרח', 'רוח סערה', 'ממותה גוויה']
     }
 ];
+
+export const campUpgrades = {
+    tent: [
+        { level: 1, cost: 0, healPercent: 0.4 },
+        { level: 2, cost: 200, healPercent: 0.5 },
+        { level: 3, cost: 800, healPercent: 0.65 },
+        { level: 4, cost: 2500, healPercent: 0.8 },
+        { level: 5, cost: 8000, healPercent: 1.0 },
+    ],
+    blacksmith: [
+        { level: 1, cost: 0, discount: 0 },
+        { level: 2, cost: 300, discount: 0.1 },
+        { level: 3, cost: 1000, discount: 0.2 },
+        { level: 4, cost: 3000, discount: 0.35 },
+        { level: 5, cost: 10000, discount: 0.5 },
+    ]
+};
+
+export const MINERALS = {
+    copper:   { id: 'copper',  name: 'נחושת',  icon: 'Mountain', color: 'text-orange-400' },
+    iron:     { id: 'iron',    name: 'ברזל',   icon: 'Cog', color: 'text-slate-300' },
+    goldOre:  { id: 'goldOre', name: 'עפרת זהב', icon: 'Sparkles', color: 'text-yellow-400' },
+    mithril:  { id: 'mithril', name: 'מיתריל', icon: 'Gem', color: 'text-cyan-400' }
+};
+
+export const FISH_TYPES = [
+    { id: 'salmon',   name: 'סלמון',    icon: 'Fish', buffType: 'str',    buffValue: 0.25, battlesLeft: 2,  rarity: 0.35 },
+    { id: 'trout',    name: 'פסטרייה',  icon: 'Fish', buffType: 'def',    buffValue: 0.35, battlesLeft: 1,  rarity: 0.30 },
+    { id: 'bass',     name: 'בס',       icon: 'Fish', buffType: 'hp',     buffValue: 100,  battlesLeft: 1,  rarity: 0.20 },
+    { id: 'octopus',  name: 'תמנון', icon: 'Waves', buffType: 'gold',   buffValue: 0.25, battlesLeft: 3,  rarity: 0.10 },
+    { id: 'shark',    name: 'כריש',     icon: 'Anchor', buffType: 'allDmg', buffValue: 0.40, battlesLeft: 1,  rarity: 0.05 }
+];
+
+export const ALCHEMY_RECIPES = [
+    {
+        id: 'heal_strong',
+        name: 'שיקוי ריפוי משופר',
+        icon: 'Heart',
+        desc: 'מרפא 80% מהחיים',
+        cost: { copper: 2 },
+        effect: { type: 'heal', value: 0.8 }
+    },
+    {
+        id: 'str_brew',
+        name: 'תמצית כוח',
+        icon: 'Sword',
+        desc: '+30% STR לכל הקרב',
+        cost: { iron: 2 },
+        effect: { type: 'str', value: 0.30, battlesLeft: 1 }
+    },
+    {
+        id: 'def_brew',
+        name: 'תמצית הגנה',
+        icon: 'Shield',
+        desc: '+30% DEF לכל הקרב',
+        cost: { copper: 1, iron: 1 },
+        effect: { type: 'def', value: 0.30, battlesLeft: 1 }
+    },
+    {
+        id: 'mana_brew',
+        name: 'תמצית מאנה',
+        icon: 'Zap',
+        desc: 'מחזיר MP מלא',
+        cost: { iron: 1 },
+        effect: { type: 'mp', value: 1.0 }
+    },
+    {
+        id: 'power_brew',
+        name: 'שיקוי עצמה',
+        icon: 'FlaskConical',
+        desc: '+50% כל הסטטים ל-3 תורות',
+        cost: { goldOre: 1 },
+        effect: { type: 'all', value: 0.50, battlesLeft: 3 }
+    },
+    {
+        id: 'mithril_elixir',
+        name: 'אליקסיר מיתריל',
+        icon: 'Star',
+        desc: 'מרפא הכל + +100% STR+DEF לכל הקרב',
+        cost: { mithril: 1 },
+        effect: { type: 'mithril_elixir', value: 1.0, battlesLeft: 999 }
+    }
+];
+
