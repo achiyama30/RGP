@@ -6,3 +6,8 @@ continue
 can you use a skill for...
 האם תוכל להשתמש במיומנות עבור...
 
+
+ cd C:\Users\shlom\.gemini\antigravity\playground\primal-viking\
+ npm run dev
+
+ node sync_assets.js

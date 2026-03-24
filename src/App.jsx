@@ -724,8 +724,10 @@ const App = () => {
         const hasTakenDamage = state.enemyAttacking && state.turn === 'enemy';
 
         const MOB_IMAGES = {
-            'לוחם כפור': '/assets/mobs/frost_warrior.png',
-            'טרול מעמקים': '/assets/mobs/deep_troll.png'
+            'לוחם כפור': '/assets/bg/frost_warrior.png',
+            'טרול מעמקים': '/assets/bg/deep_troll.png',
+            'עכביש ענק': '/assets/bg/giant_spider.png',
+            'ממותה גוויה': '/assets/bg/mammoth.png'
         };
         const getMobImage = (name) => {
             if (!name) return null;
