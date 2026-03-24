@@ -723,6 +723,15 @@ const App = () => {
         // Compute if player recently took damage to shake screen
         const hasTakenDamage = state.enemyAttacking && state.turn === 'enemy';
 
+        const MOB_IMAGES = {
+            'לוחם כפור': '/assets/mobs/frost_warrior.png'
+        };
+        const getMobImage = (name) => {
+            if (!name) return null;
+            const cleanName = name.replace('[לילה] ', '');
+            return MOB_IMAGES[cleanName] || null;
+        };
+
         return (
             <div className={`w-full max-w-4xl mx-auto min-h-screen ${bgRegionClass} flex flex-col relative overflow-hidden ${hasTakenDamage ? 'animate-intense-shake' : ''}`} dir="rtl">
                 {/* Static background gradient - never changes, no flash */}
@@ -757,8 +766,18 @@ const App = () => {
                             <div className="flex justify-center mb-6">
                                 <div className="text-9xl filter drop-shadow-[0_20px_20px_rgba(0,0,0,0.8)] relative group">
                                     <div className="absolute inset-0 bg-gradient-to-tr from-rose-500/20 to-purple-500/20 blur-2xl rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
-                                    <span className="relative z-10 inline-block group-hover:scale-105 transition-transform duration-500 text-slate-200 will-change-transform drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
-                                        <RenderDynamicIcon name={ne.icon || 'Skull'} size={110} />
+                                    <span className="relative z-10 flex justify-center items-center group-hover:scale-105 transition-transform duration-500 text-slate-200 will-change-transform drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
+                                        {getMobImage(ne.name) ? (
+                                            <>
+                                                <img src={getMobImage(ne.name)} alt={ne.name} className="w-32 h-32 md:w-48 md:h-48 object-contain drop-shadow-2xl z-10 relative" 
+                                                     onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+                                                <div style={{ display: 'none' }}>
+                                                    <RenderDynamicIcon name={ne.icon || 'Skull'} size={110} />
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <RenderDynamicIcon name={ne.icon || 'Skull'} size={110} />
+                                        )}
                                     </span>
                                     {ne.isBoss && <div className="absolute -top-6 -right-6 bg-gradient-to-br from-rose-900 to-rose-950 text-xs px-3 py-1.5 rounded-sm text-rose-300 font-bold font-cinzel tracking-wider border border-rose-500/50 shadow-[0_0_20px_rgba(225,29,72,0.4)] animate-pulse-slow">בוס נבחר</div>}
                                     {ne.stunTurns > 0 && <div className="absolute top-0 -left-6 max-w-none animate-spin filter drop-shadow-lg text-amber-500"><LucideIcons.Loader size={32} /></div>}
