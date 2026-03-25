@@ -796,7 +796,7 @@ const App = () => {
                                     <span className="relative z-10 flex justify-center items-center group-hover:scale-105 transition-transform duration-500 text-slate-200 will-change-transform drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
                                         {getMobImage(ne.name) ? (
                                             <>
-                                                <img src={getMobImage(ne.name)} alt={ne.name} className="w-32 h-32 md:w-48 md:h-48 object-contain drop-shadow-2xl z-10 relative" 
+                                                <img src={getMobImage(ne.name)} alt={ne.name} className="w-56 h-56 md:w-80 md:h-80 lg:w-[400px] lg:h-[400px] object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)] z-10 relative transition-all duration-300" 
                                                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
                                                 <div style={{ display: 'none' }}>
                                                     <RenderDynamicIcon name={ne.icon || 'Skull'} size={110} />
