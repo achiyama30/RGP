@@ -168,8 +168,8 @@
     background-position: center;
     background-attachment: fixed;
   }
-  .bg-region-tundra {
-    background-image: linear-gradient(to bottom, rgba(4,8,15,0.4) 0%, rgba(4,6,10,0.95) 100%), url('/assets/bg/tundra.png');
+  .bg-region-dark_lake {
+    background-image: linear-gradient(to bottom, rgba(4,8,15,0.6) 0%, rgba(2,4,8,0.96) 100%), url('/assets/bg/dark_lake.png');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;

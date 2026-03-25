@@ -24,7 +24,9 @@ const images = {
     "camp_bg_1773840502118.png": "camp.png",
     "forest_bg_1774299396940.png": "forest.png",
     "volcano_bg_1774299417798.png": "volcano.png",
-    "tundra_bg_1774299446146.png": "tundra.png"
+    "tundra_bg_1774299446146.png": "tundra.png",
+    "dark_lake_bg_1774469281054.png": "dark_lake.png",
+    "shadow_leviathan_1774469320699.png": "shadow_leviathan.png"
 };
 
 console.log("🎨 Copying background images from Ai brain...");

@@ -724,10 +724,34 @@ const App = () => {
         const hasTakenDamage = state.enemyAttacking && state.turn === 'enemy';
 
         const MOB_IMAGES = {
-            'לוחם כפור': '/assets/bg/frost_warrior.png',
-            'טרול מעמקים': '/assets/bg/deep_troll.png',
+            // General / Night
+            'שד אפל': '/assets/bg/dark_demon.png',
+            'גריפון זועם': '/assets/bg/griffon.png',
+            'נמר צל': '/assets/bg/shadow_tiger.png',
+            
+            // Forest
+            'זאב בלהות': '/assets/bg/dire_wolf.png',
+            'גובלין סורר': '/assets/bg/goblin.png',
             'עכביש ענק': '/assets/bg/giant_spider.png',
-            'ממותה גוויה': '/assets/bg/mammoth.png'
+            'שדון יער': '/assets/bg/forest_imp.png',
+            'טרול מעמקים': '/assets/bg/deep_troll.png',
+            'אלון עתיק מושחת': '/assets/bg/corrupted_oak.png', // Boss
+            
+            // Volcano
+            'כלב אש': '/assets/bg/fire_hound.png',
+            'גולם לבה': '/assets/bg/magma_golem.png',
+            'לוחם אפר': '/assets/bg/ash_warrior.png',
+            'סלמנדרה': '/assets/bg/salamander.png',
+            'רוח אש מתפרצת': '/assets/bg/fire_spirit.png',
+            'שדון האש הגדול': '/assets/bg/fire_demon_boss.png', // Boss
+            
+            // The Dark Lake
+            'חייל טבוע': '/assets/bg/drowned_soldier.png',
+            'שומרת האגם': '/assets/bg/lake_siren.png',
+            'סרטן אימה': '/assets/bg/horror_crab.png',
+            'ריר רעיל': '/assets/bg/toxic_ooze.png',
+            'זוחל ממעמקים': '/assets/bg/deep_crawler.png',
+            'לוויתן הצללים': '/assets/bg/shadow_leviathan.png' // Boss
         };
         const getMobImage = (name) => {
             if (!name) return null;

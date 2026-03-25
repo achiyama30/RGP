@@ -40,12 +40,12 @@ export const regions = [
         monsters: ['כלב אש', 'גולם לבה', 'לוחם אפר', 'סלמנדרה', 'רוח אש מתפרצת']
     },
     {
-        id: 'tundra',
-        name: 'פסגת הקרח',
+        id: 'dark_lake',
+        name: 'האגם האפל',
         element: elements.WATER,
         minLevel: 12,
-        boss: { name: 'לורד הקרחון', hpMult: 5, strMult: 2.5, magMult: 2.5, element: elements.WATER },
-        monsters: ['זאב שלג', 'לוחם כפור', 'גולם קרח', 'רוח סערה', 'ממותה גוויה']
+        boss: { name: 'לוויתן הצללים', hpMult: 5, strMult: 2.5, magMult: 2.5, element: elements.WATER },
+        monsters: ['חייל טבוע', 'שומרת האגם', 'סרטן אימה', 'ריר רעיל', 'זוחל ממעמקים']
     }
 ];
 
