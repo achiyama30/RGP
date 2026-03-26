@@ -15,9 +15,14 @@ export const generateItem = (level, type, worldLevel = 1) => {
     const name = `${itemNames[type][Math.floor(Math.random() * itemNames[type].length)]} ${selectedRarity.name}`;
     const baseVal = Math.floor((level * 2 + Math.floor(Math.random() * 3)) * scale);
     const cost = Math.floor((level * 15 * scale + baseVal * 5) * selectedRarity.mult);
-    const element = itemElementPool[Math.floor(Math.random() * itemElementPool.length)];
+    let element = itemElementPool[Math.floor(Math.random() * itemElementPool.length)];
 
     const item = { id: Math.random().toString(), name, type, rarity: selectedRarity, level, cost, element, str: 0, def: 0, mag: 0, mpBonus: 0, hpBonus: 0, evadeBonus: 0, critBonus: 0 };
+    
+    // Magic Missile is always neutral to avoid elemental confusion
+    if (name.includes('קליע קסם')) {
+        item.element = elements.NEUTRAL;
+    }
     
     if (type === 'melee') item.str = Math.floor(baseVal * selectedRarity.mult) + 1;
     if (type === 'magic') {
@@ -30,9 +35,18 @@ export const generateItem = (level, type, worldLevel = 1) => {
     }
     if (type === 'ring') {
         const ringFocus = Math.random();
-        if (ringFocus < 0.33) item.hpBonus = Math.floor(baseVal * 5 * selectedRarity.mult);
-        else if (ringFocus < 0.66) item.evadeBonus = Math.floor(baseVal * 1.5 * selectedRarity.mult);
-        else item.critBonus = Math.floor(baseVal * 1.5 * selectedRarity.mult);
+        if (ringFocus < 0.33) {
+            item.hpBonus = Math.floor(baseVal * 5 * selectedRarity.mult);
+            item.element = elements.NATURE; // Health = Nature
+        }
+        else if (ringFocus < 0.66) {
+            item.evadeBonus = Math.floor(baseVal * 1.5 * selectedRarity.mult);
+            item.element = elements.WATER; // Dodge = Water
+        }
+        else {
+            item.critBonus = Math.floor(baseVal * 1.5 * selectedRarity.mult);
+            item.element = elements.FIRE; // Crit = Fire
+        }
     }
     return item;
 };

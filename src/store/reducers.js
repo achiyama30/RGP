@@ -806,7 +806,7 @@ export const gameReducer = (state, action) => {
                     newNe.hp -= dmg;
                     const elemText = elemMult > 1 ? ' 🔥 יעיל במיוחד!' : (elemMult < 1 ? ' 💧 לא יעיל...' : '');
                     newLogs.unshift(addLog(isCrit ? `💥 מכה קריטית! ${dmg} נזק אדיר!${elemText}` : `🗡️ תקפת וגרמת ${dmg} נזק!${elemText}`, isCrit ? 'warning' : 'attack'));
-                    newFloatingTexts.push(createFloatingText(`-${dmg}`, isCrit ? 'crit' : 'damage', 'enemy'));
+                    newFloatingTexts.push(createFloatingText(`-${dmg}`, isCrit ? 'crit' : 'damage', 'enemy', elemMult));
                 }
             } else if (actionType === 'magic') {
                 const cost = 15;
@@ -823,7 +823,7 @@ export const gameReducer = (state, action) => {
                         newNe.hp -= dmg;
                         const elemText = elemMult > 1 ? ' 🔥 יעיל במיוחד!' : (elemMult < 1 ? ' 💧 לא יעיל...' : '');
                         newLogs.unshift(addLog(isCrit ? `🔥 קסם קריטי!! ${dmg} נזק קסום!${elemText}` : `✨ כישוף! גרמת ${dmg} נזק קסם.${elemText}`, isCrit ? 'warning' : 'magic'));
-                        newFloatingTexts.push(createFloatingText(`-${dmg}`, isCrit ? 'crit' : 'damage', 'enemy'));
+                        newFloatingTexts.push(createFloatingText(`-${dmg}`, isCrit ? 'crit' : 'damage', 'enemy', elemMult));
                     }
                 } else {
                     newLogs.unshift(addLog('❌ אין מספיק MP לקסם!', 'danger'));
@@ -861,7 +861,7 @@ export const gameReducer = (state, action) => {
                 newNe.hp -= dmg;
                 const elemText = elemMult > 1 ? ' 🔥 יעיל במיוחד!' : (elemMult < 1 ? ' 💧 לא יעיל...' : '');
                 newLogs.unshift(addLog(`💫 פרץ מאנה!!${isCrit ? ' קריטי!' : ''} ${dmg} נזק קסם!${elemText}`, 'magic'));
-                newFloatingTexts.push(createFloatingText(`-${dmg}`, isCrit ? 'crit' : 'damage', 'enemy'));
+                newFloatingTexts.push(createFloatingText(`-${dmg}`, isCrit ? 'crit' : 'damage', 'enemy', elemMult));
             } else if (actionType === 'defend') {
                 np.isDefending = true;
                 const mpGained = Math.min(playerTotalMaxMp - np.mp, 10);

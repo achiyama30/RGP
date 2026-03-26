@@ -355,7 +355,7 @@ const App = () => {
                 )}
 
                 {floatingTexts.map(t => (
-                    <FloatingCombatText key={t.id} text={t.text} type={t.type} onAnimationEnd={() => dispatch({ type: 'REMOVE_FLOATING_TEXT', payload: { id: t.id } })} />
+                    <FloatingCombatText key={t.id} text={t.text} type={t.type} elemMult={t.elemMult || 1} onAnimationEnd={() => dispatch({ type: 'REMOVE_FLOATING_TEXT', payload: { id: t.id } })} />
                 ))}
             </div>
         );
@@ -770,7 +770,7 @@ const App = () => {
                 {/* Floating Texts container relative positioning area */}
                 <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden flex justify-center items-center">
                     {floatingTexts.map(t => (
-                        <FloatingCombatText key={t.id} text={t.text} type={t.type} onAnimationEnd={() => dispatch({ type: 'REMOVE_FLOATING_TEXT', payload: { id: t.id } })} />
+                        <FloatingCombatText key={t.id} text={t.text} type={t.type} elemMult={t.elemMult || 1} onAnimationEnd={() => dispatch({ type: 'REMOVE_FLOATING_TEXT', payload: { id: t.id } })} />
                     ))}
                 </div>
 

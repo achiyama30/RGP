@@ -4,11 +4,12 @@ export const addLog = (text, type = 'info') => ({
     id: Math.random().toString() 
 });
 
-export const createFloatingText = (text, type, target) => ({
+export const createFloatingText = (text, type, target, elemMult = 1) => ({
     id: Math.random().toString(),
     text, 
     type, 
-    target // target: 'player' | 'enemy'
+    target, // target: 'player' | 'enemy'
+    elemMult // 2 = advantage (huge yellow), 0.5 = disadvantage (small gray), 1 = normal
 });
 
 // Elemental triangle: Fire > Nature > Water > Fire
@@ -25,7 +26,7 @@ export const getElementalMultiplier = (attackerElement, defenderElement) => {
         'טבע': 'אש',
         'מים': 'טבע',
     };
-    if (strong[attackerElement] === defenderElement) return 1.5;
+    if (strong[attackerElement] === defenderElement) return 2.0;
     if (weak[attackerElement] === defenderElement) return 0.5;
     return 1;
 };
