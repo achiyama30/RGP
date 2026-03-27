@@ -1,4 +1,4 @@
-import { rarities, regions, campUpgrades, MINERALS, FISH_TYPES, ALCHEMY_RECIPES } from '../utils/constants';
+import { rarities, regions, campUpgrades, MINERALS, FISH_TYPES, ALCHEMY_RECIPES, elements } from '../utils/constants';
 import { getShopInventory, generateItem, generateEnemy, upgradeItem, getUpgradeCost, generateQuests } from '../utils/generators';
 import { addLog, createFloatingText, getElementalMultiplier } from '../utils/helpers';
 
@@ -12,9 +12,9 @@ export const initialState = {
         hp: 150, baseMaxHp: 150,
         mp: 80, baseMaxMp: 80,
         str: 8, def: 3, mag: 8,
-        meleeWeapon: { name: 'חרב ברזל', level: 1, type: 'melee', str: 6, element: 'רגיל', rarity: rarities[1], cost: 20 },
-        magicWeapon: { name: 'שרביט עץ', level: 1, type: 'magic', mag: 2, mpBonus: 10, element: 'רגיל', rarity: rarities[1], cost: 20 },
-        armor: { name: 'שריון עור מחוזק', level: 1, type: 'armor', def: 4, rarity: rarities[1], cost: 20 },
+        meleeWeapon: { name: 'חרב ברזל', level: 1, type: 'melee', str: 6, element: elements.NEUTRAL, rarity: rarities[1], cost: 20 },
+        magicWeapon: { name: 'שרביט עץ', level: 1, type: 'magic', mag: 2, mpBonus: 10, element: elements.NEUTRAL, rarity: rarities[1], cost: 20 },
+        armor: { name: 'שריון עור מחוזק', level: 1, type: 'armor', def: 4, element: elements.NEUTRAL, rarity: rarities[1], cost: 20 },
         ring1: null,
         ring2: null,
         isDefending: false, specialCooldown: 0, slamCooldown: 0, burstCooldown: 0, stunTurns: 0, statuses: []
@@ -983,8 +983,9 @@ export const gameReducer = (state, action) => {
                         newLogs.unshift(addLog(`💨 התחמקות! זזת בזמן והאויב החטיא.`, 'success'));
                     } else {
                         const effectiveDef = np.isDefending ? playerTotalDef * 2 : playerTotalDef;
-                        // Enemy elemental damage
-                        const elemMult = getElementalMultiplier(ne.element, 'רגיל'); // player has neutral base defense
+                        // Enemy elemental damage vs player's equipped weapon element (player's element is determined by their weapon)
+                        const playerElement = np.meleeWeapon?.element || np.magicWeapon?.element || elements.NEUTRAL;
+                        const elemMult = getElementalMultiplier(ne.element, playerElement);
                         let dmg = Math.max(1, Math.floor(ne.str * (0.8 + Math.random() * 0.4) * elemMult) - effectiveDef);
                         
                         if (ne.isBoss && Math.random() < 0.3) {
